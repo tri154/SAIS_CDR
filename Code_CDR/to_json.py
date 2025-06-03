@@ -186,9 +186,9 @@ def transform(file_in, file_out):
                 positions_start1 = p[8].split(':')
                 positions_end1 = p[9].split(':')
                 for i in range(len(mention_names1)):
-                    vertex1.append({'pos':[positions_start1[i], positions_end1[i]],
+                    vertex1.append({'pos':[int(positions_start1[i]), int(positions_end1[i])],
                                     'type': type1,
-                                    'sent_id': sent_ids1[i],
+                                    'sent_id': int(sent_ids1[i]),
                                     'name': mention_names1[i]
                                     })
 
@@ -200,9 +200,9 @@ def transform(file_in, file_out):
                 positions_start2 = p[14].split(':')
                 positions_end2 = p[15].split(':')
                 for i in range(len(mention_names2)):
-                    vertex2.append({'pos':[positions_start2[i], positions_end2[i]],
+                    vertex2.append({'pos':[int(positions_start2[i]), int(positions_end2[i])],
                                     'type': type2,
-                                    'sent_id': sent_ids2[i],
+                                    'sent_id': int(sent_ids2[i]),
                                     'name': mention_names2[i]
                                     })
                 check_add(vertexs, vertex1)
