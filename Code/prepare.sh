@@ -1,7 +1,7 @@
 #!/bin/bash
 
 stage="Prepare"
-dataset="DocRED"
+dataset="CDR"
 transformer="bert-base-cased" # "roberta-large"
 max_seq_length=1024
     
