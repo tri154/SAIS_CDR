@@ -67,10 +67,14 @@ def train(args, info, idx_epoch, inputs_train, model, optimizer, scheduler):
     for idx_batch, batch_inputs in enumerate(prepare_batch_train(info, inputs_train, args.batch_size)):
 
         for key, value in batch_inputs.items():
+            v = value
             if isinstance(value, list):
-                print(f"{key}: {np.array(value).shape}")
-            elif torch.is_tensor(value):
-                print(f"{key}: {value.shape}")
+                v = np.array(value)
+            print(f"{key}: {v.shape}")
+            if key == 'batch_token_types':
+                print(f"{key}: {v[0]}")
+
+
 
         quit = input("Terminate ?")
 
