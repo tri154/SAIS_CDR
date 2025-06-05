@@ -255,7 +255,9 @@ def prepare_batch_train(info, inputs, batch_size):
         batch_epair_finegrained_evidences = torch.cat(batch_epair_finegrained_evidences).float().to(info.DEVICE_GPU) if len(batch_epair_finegrained_evidences) != 0 else None
         batch_num_epairs_per_doc = torch.Tensor(batch_num_epairs_per_doc).long()
 
-        batch_inputs = {'batch_token_seqs': batch_token_seqs,# sequence of tokens
+        batch_inputs = {
+            'batch_titles' : batch_titles,
+            'batch_token_seqs': batch_token_seqs,# sequence of tokens
                    'batch_token_masks': batch_token_masks, # mask for non-padding
                    'batch_token_types': batch_token_types, # 0000 111 000 11 of documents
                    'batch_sent_tids': batch_sent_tids, # start token of the sentences, VN: lan lon cac documents
