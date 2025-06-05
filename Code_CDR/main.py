@@ -67,7 +67,11 @@ def train(args, info, idx_epoch, inputs_train, model, optimizer, scheduler):
     for idx_batch, batch_inputs in enumerate(prepare_batch_train(info, inputs_train, args.batch_size)):
 
         for key, value in batch_inputs.items():
-            print(f"{key}: {value.shape}")
+            if isinstance(value, list):
+                print(f"{key}: {np.array(value).shape}")
+            elif torch.is_tensor(value):
+                print(f"{key}: {value.shape}")
+
         quit = input("Terminate ?")
 
         batch_loss, _, = model(batch_tasks, batch_inputs, to_evaluate=True, to_predict=False)
