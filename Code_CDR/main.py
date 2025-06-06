@@ -117,10 +117,10 @@ def test(args, info, mode, inputs, tokenizer, model, if_final=False, rej_rate=0,
     # if not if_final:
     all_first_P, all_first_R, all_first_F1 = cal_f1(all_relations, model.loss_module.pred_RE_results(all_first_predictions))
 
-    all_first_F1_threshold = 0.62
-    if all_first_F1 <= all_first_F1_threshold:
-        myprint(f'All {info.INFER_ROUND_FIRST} Precision: {all_first_P:.4f} | Recall: {all_first_R:.4f} | F1: {all_first_F1:.4f}', info.FILE_STDOUT)
-        return all_first_F1
+    # all_first_F1_threshold = 0.62
+    # if all_first_F1 <= all_first_F1_threshold:
+    myprint(f'All {info.INFER_ROUND_FIRST} Precision: {all_first_P:.4f} | Recall: {all_first_R:.4f} | F1: {all_first_F1:.4f}', info.FILE_STDOUT)
+    return all_first_F1
 
     # myprint(f'Identify Rejection Triplets', info.FILE_STDOUT)
     # all_logits = all_first_predictions[:, info.ID_REL_THRE+1:].flatten()
