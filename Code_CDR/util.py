@@ -193,6 +193,15 @@ def prepare_batch_train(info, inputs, batch_size):
                 doc_mention_tids += list(tids) # only list(...)
                 doc_num_mentions_per_doc.append(len(tids))
             batch_mention_tids += doc_mention_tids #batch mention tids [batch_id][doc_id][entity_id] = start token of that mention
+            if '16181582' in batch_titles :
+                print(doc_num_mentions_per_doc)
+            if '9727773' in batch_titles :
+                print(doc_num_mentions_per_doc)
+            if '1749407' in batch_titles :
+                print(doc_num_mentions_per_doc)
+            if '12202650' in batch_titles :
+                print(doc_num_mentions_per_doc)
+
             batch_num_mentions_per_doc.append(sum(doc_num_mentions_per_doc)) #number of mentions in batch
 
             doc_mention_tids = np.cumsum([0] + doc_mention_tids) # ????
@@ -259,7 +268,7 @@ def prepare_batch_train(info, inputs, batch_size):
             'batch_titles' : batch_titles,
             'batch_token_seqs': batch_token_seqs,# sequence of tokens
                    'batch_token_masks': batch_token_masks, # mask for non-padding
-                   'batch_token_types': batch_token_types, # 0000 111 000 11 of documents
+                   'batch_token_types': batch_token_types, # 0000 111 000 11 , sentenece indicator of documents
                    'batch_sent_tids': batch_sent_tids, # start token of the sentences, VN: lan lon cac documents
                    'batch_num_sents_per_doc': batch_num_sents_per_doc, # number of sentence in the documents
                    'batch_mention_tids': batch_mention_tids,
@@ -289,6 +298,14 @@ def prepare_batch_train(info, inputs, batch_size):
         batch_epair_pooled_evidences: torch.Size([806])
         batch_epair_finegrained_evidences: torch.Size([187])
         batch_num_epairs_per_doc: torch.Size([4])
+        
+        
+        
+        batch_sent_tids: tensor([  0,  18,  50,  69,  85, 104, 124,   0,  23,  57,  83, 113, 134, 179,
+        197, 223, 258, 285,   0,  26,  54, 106, 144, 181, 220, 249, 276, 334,
+          0,  28,  66, 116, 141, 181, 211, 234], device='cuda:0')
+        
+        batch_mention_tids: tensor([ 1, 31,  9, 36, 42,  4, 14,  1,  7,  1,  8, 59], device='cuda:0')
         """
 
         yield batch_inputs
