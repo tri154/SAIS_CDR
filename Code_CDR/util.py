@@ -274,7 +274,7 @@ def prepare_batch_train(info, inputs, batch_size):
                    'batch_mention_tids': batch_mention_tids,
                    'batch_mention_coreferences': batch_mention_coreferences,
                    'batch_num_mentions_per_doc': batch_num_mentions_per_doc,
-                   'batch_epair_tids': batch_epair_tids, # ??
+                   'batch_epair_tids': batch_epair_tids, # [number of pairs in batch][head or tail][tokens id of mentions of that entity]
                    'batch_epair_types': batch_epair_types,
                    'batch_epair_masks': batch_epair_masks,
                    'batch_epair_relations': batch_epair_relations,
@@ -283,21 +283,22 @@ def prepare_batch_train(info, inputs, batch_size):
                    'batch_num_epairs_per_doc': batch_num_epairs_per_doc}
 
         """
-        batch_token_seqs: torch.Size([4, 356])  
-        batch_token_masks: torch.Size([4, 356])
-        batch_token_types: torch.Size([4, 356])
-        batch_sent_tids: torch.Size([36])
-        batch_num_sents_per_doc: torch.Size([4])
-        batch_mention_tids: torch.Size([12])
-        batch_mention_coreferences: torch.Size([38])
-        batch_num_mentions_per_doc: (4,)
-        batch_epair_tids: torch.Size([86, 2, 2])
-        batch_epair_types: torch.Size([86, 2])
-        batch_epair_masks: torch.Size([86, 356])
-        batch_epair_relations: torch.Size([86, 3])
-        batch_epair_pooled_evidences: torch.Size([806])
-        batch_epair_finegrained_evidences: torch.Size([187])
-        batch_num_epairs_per_doc: torch.Size([4])
+batch_titles: (4,)
+batch_token_seqs: torch.Size([4, 388])
+batch_token_masks: torch.Size([4, 388])
+batch_token_types: torch.Size([4, 388])
+batch_sent_tids: torch.Size([36])
+batch_num_sents_per_doc: torch.Size([4])
+batch_mention_tids: torch.Size([53])
+batch_mention_coreferences: torch.Size([765])
+batch_num_mentions_per_doc: (4,)
+batch_epair_tids: torch.Size([86, 2, 10])
+batch_epair_types: torch.Size([86, 2])
+batch_epair_masks: torch.Size([86, 388])
+batch_epair_relations: torch.Size([86, 3])
+batch_epair_pooled_evidences: torch.Size([806])
+batch_epair_finegrained_evidences: torch.Size([187])
+batch_num_epairs_per_doc: torch.Size([4])
         
         
         

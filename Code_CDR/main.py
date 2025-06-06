@@ -60,23 +60,25 @@ def train(args, info, idx_epoch, inputs_train, model, optimizer, scheduler):
     
     model.train()
     optimizer.zero_grad()
-    batch_tasks = set([info.TASK_RE, info.TASK_CR, info.TASK_ET, info.TASK_PER, info.TASK_FER])
+    # batch_tasks = set([info.TASK_RE, info.TASK_CR, info.TASK_ET, info.TASK_PER, info.TASK_FER])
+    batch_tasks = set([info.TASK_RE, info.TASK_CR, info.TASK_ET])
+
 
     num_batch = math.ceil(len(inputs_train) / args.batch_size)
     report_batch = num_batch // 5
     for idx_batch, batch_inputs in enumerate(prepare_batch_train(info, inputs_train, args.batch_size)):
 
-        for key, value in batch_inputs.items():
-            v = value
-            if isinstance(value, list):
-                v = np.array(value)
-            print(f"{key}: {v.shape}")
-            if key == 'batch_token_types':
-                print(f"{key}: {v[0]}")
-
-
-
-        quit = input("Terminate ?")
+        # for key, value in batch_inputs.items():
+        #     v = value
+        #     if isinstance(value, list):
+        #         v = np.array(value)
+        #     print(f"{key}: {v.shape}")
+        #     if key == 'batch_token_types':
+        #         print(f"{key}: {v[0]}")
+        #
+        #
+        #
+        # quit = input("Terminate ?")
 
         batch_loss, _, = model(batch_tasks, batch_inputs, to_evaluate=True, to_predict=False)
         (batch_loss / args.update_freq).backward()
