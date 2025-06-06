@@ -193,14 +193,14 @@ def prepare_batch_train(info, inputs, batch_size):
                 doc_mention_tids += list(tids) # only list(...)
                 doc_num_mentions_per_doc.append(len(tids))
             batch_mention_tids += doc_mention_tids #batch mention tids [batch_id][doc_id][entity_id] = start token of that mention
-            if '16181582' in batch_titles :
-                print(doc_num_mentions_per_doc)
-            if '9727773' in batch_titles :
-                print(doc_num_mentions_per_doc)
-            if '1749407' in batch_titles :
-                print(doc_num_mentions_per_doc)
-            if '12202650' in batch_titles :
-                print(doc_num_mentions_per_doc)
+            # if '16181582' in batch_titles :
+            #     print(doc_num_mentions_per_doc) # (2, 2)
+            # if '9727773' in batch_titles :
+            #     print(doc_num_mentions_per_doc) # (2, 1)
+            # if '1749407' in batch_titles :
+            #     print(doc_num_mentions_per_doc) # (1, 1)
+            # if '12202650' in batch_titles :
+            #     print(doc_num_mentions_per_doc) # (1, 1, 1)
 
             batch_num_mentions_per_doc.append(sum(doc_num_mentions_per_doc)) #number of mentions in batch
 

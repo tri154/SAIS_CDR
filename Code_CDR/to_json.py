@@ -1,6 +1,6 @@
 import json
 from tqdm import tqdm
-
+import numpy as np
 
 def chunks(l, n):
     res = []
@@ -177,6 +177,7 @@ def transform(file_in, file_out):
             labels = []
             title = pmid
             sents = [t.split(' ') for t in text.split('|')]
+            len_sents = [len(i) for i in sents]
             for p in prs:  # each triplet
                 vertex1 = list() # first entity in the triplet, list of mentions
                 mention_names1 = p[6].split('|')
@@ -186,7 +187,9 @@ def transform(file_in, file_out):
                 positions_start1 = p[8].split(':')
                 positions_end1 = p[9].split(':')
                 for i in range(len(mention_names1)):
-                    vertex1.append({'pos':[int(positions_start1[i]), int(positions_end1[i])],
+                    p1 = int(positions_start1[i]) - np.sum(len_sents[:int(sent_ids1[i])])
+                    p2 = int(positions_end1[i]) - np.sum(len_sents[:int(sent_ids1[i])])
+                    vertex1.append({'pos':[int(p1), int(p2) ],
                                     'type': type1,
                                     'sent_id': int(sent_ids1[i]),
                                     'name': mention_names1[i]
@@ -200,7 +203,9 @@ def transform(file_in, file_out):
                 positions_start2 = p[14].split(':')
                 positions_end2 = p[15].split(':')
                 for i in range(len(mention_names2)):
-                    vertex2.append({'pos':[int(positions_start2[i]), int(positions_end2[i])],
+                    p1 = int(positions_start2[i]) - np.sum(len_sents[:int(sent_ids2[i])])
+                    p2 = int(positions_end2[i]) - np.sum(len_sents[:int(sent_ids2[i])])
+                    vertex2.append({'pos':[int(p1), int(p2) ],
                                     'type': type2,
                                     'sent_id': int(sent_ids2[i]),
                                     'name': mention_names2[i]
