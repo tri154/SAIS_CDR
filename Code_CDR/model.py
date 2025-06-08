@@ -33,7 +33,7 @@ class Transformer(nn.Module):
         else:
             new_token_seqs, new_token_masks, new_token_types, new_token_segs = [], [], [], []
             real_num_tokens = batch_token_masks.sum(1).int().tolist()
-            for doc_id, real_num_token in enumerate(real_num_tokens):
+            for doc_id, real_num_token in enumerate(real_num_tokens): # for each docs.
                 if real_num_token <= self.max_num_tokens:
                     new_token_seqs.append(batch_token_seqs[doc_id, :self.max_num_tokens])
                     new_token_masks.append(batch_token_masks[doc_id, :self.max_num_tokens])
@@ -51,7 +51,7 @@ class Transformer(nn.Module):
                     new_token_seqs.extend([new_token_seq1, new_token_seq2])
                     new_token_masks.extend([new_token_mask1, new_token_mask2])
                     new_token_types.extend([new_token_type1, new_token_type2])
-                    new_token_segs.append(2)
+                    new_token_segs.append(2) ## drop middle part if the token length exceeds 2 * 512, or may be the maximum is smaller than that.
                     
             batch_token_seqs, batch_token_masks, batch_token_types = torch.stack(new_token_seqs, dim=0).long(), torch.stack(new_token_masks, dim=0).float(), torch.stack(new_token_types, dim=0).long()
             batch_output = self.transformer(input_ids=batch_token_seqs, attention_mask=batch_token_masks, token_type_ids=batch_token_types, output_attentions=True)
@@ -98,7 +98,7 @@ class Loss:
         
         
     def cal_RE_loss(self, batch_RE_reps, batch_epair_relations):
-        
+        # ATLOP loss.
         batch_epair_thresholds = torch.zeros_like(batch_epair_relations).float().to(self.info.DEVICE_GPU)
         batch_epair_thresholds[:, self.info.ID_REL_THRE] = 1
         batch_epair_relations[:, self.info.ID_REL_THRE] = 0
@@ -341,11 +341,13 @@ class Model(nn.Module):
         
         batch_epair_tids, batch_epair_masks, batch_num_epairs_per_doc = batch_inputs['batch_epair_tids'], batch_inputs['batch_epair_masks'], batch_inputs['batch_num_epairs_per_doc']
         batch_epair_embs, batch_epair_reps, batch_epair_contexts = self.get_epair_infos(batch_token_embs, batch_token_atts, batch_epair_tids, batch_epair_masks, batch_num_epairs_per_doc)
-        
+        # batch_epair_embs: embedding of entity via logsum.
+        # batch_epair_reps: embedding goes thourgh linear layer to obtain representations.
+        # bacht_epair_contexts: contextual embedding.
         if self.info.TASK_PER in batch_tasks or self.info.TASK_FER in batch_tasks:
             batch_sent_tids, batch_num_sents_per_doc = batch_inputs['batch_sent_tids'], batch_inputs['batch_num_sents_per_doc']
             batch_sent_embs = self.get_sent_infos(batch_token_embs, batch_sent_tids, batch_num_sents_per_doc)
-        
+
         batch_loss, batch_preds = 0, None
         
         if self.info.TASK_RE in batch_tasks:
@@ -353,6 +355,8 @@ class Model(nn.Module):
             batch_RE_reps = self.get_RE_reps(batch_epair_reps, batch_epair_contexts)
             if to_evaluate: batch_loss += self.loss_module.cal_RE_loss(batch_RE_reps, batch_epair_relations)
             if to_predict: batch_preds = self.loss_module.cal_RE_results(batch_RE_reps)
+
+
                 
         if self.info.TASK_CR in batch_tasks:
             batch_mention_tids, batch_mention_coreferences, batch_num_mentions_per_doc = batch_inputs['batch_mention_tids'], batch_inputs['batch_mention_coreferences'], batch_inputs['batch_num_mentions_per_doc']
