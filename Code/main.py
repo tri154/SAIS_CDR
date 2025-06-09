@@ -7,12 +7,7 @@ from collections import defaultdict
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn.utils import clip_grad_norm_
-
-from info import Info
-from model import Model
+import torch.optim as optim import torch.nn.functional as F from torch.nn.utils import clip_grad_norm_ from info import Info from model import Model
 from prepare import DocInput
 from util import set_seed, myprint, prepare_autos, prepare_optimizer_scheduler, register_hyperparameters_main, cal_f1, evaluate, prepare_batch_train, prepare_batch_test, feed_batch
 
@@ -23,9 +18,7 @@ def parse_args():
     
     parser.add_argument('--stage', type=str, default='Main')
     parser.add_argument('--dataset', type=str, default='DocRED')
-    parser.add_argument('--seed', type=int, default=66)
-    
-    parser.add_argument('--transformer', type=str, default='bert-base-cased')
+    parser.add_argument('--seed', type=int, default=66) parser.add_argument('--transformer', type=str, default='bert-base-cased')
     parser.add_argument('--hidden_size', type=int, default=768)
     parser.add_argument('--bilinear_block_size', type=int, default=64)
         

@@ -22,13 +22,16 @@ class Trainer:
     def set_data(self, train_set=None):
         self.train_set = train_set if train_set is not None
 
-    def prepare_batch_train(self, batch_size)
+    def prepare_batch_train(self, batch_size):
+        pass
         
     def one_epoch_train(self, batch_size):
         self.model.train()
         self.optimizer.zero_grad()
 
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(batch_size)):
+            batch_loss = model(batch_input)
+
 
 
 
