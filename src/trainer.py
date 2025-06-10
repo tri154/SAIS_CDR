@@ -20,7 +20,7 @@ class Trainer:
         self.tester = tester
 
     def set_data(self, train_set=None):
-        self.train_set = train_set if train_set is not None
+        self.train_set = train_set if train_set is not None else self.train_set
 
     def prepare_batch_train(self, batch_size):
         pass
