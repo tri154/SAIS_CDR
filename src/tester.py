@@ -5,10 +5,10 @@ class Tester:
         self.test_set = test_set
 
     def test_dev(self, dev_set=None):
-        self.dev_set = dev_set if dev_set is not None 
+        self.dev_set = dev_set if dev_set is not None else self.dev_set
 
     def test(self, test_set=None):
-        self.test_set = test_set if test_set is not None
+        self.test_set = test_set if test_set is not None else self.dev_set
 
 
 

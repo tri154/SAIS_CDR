@@ -18,7 +18,6 @@ def parse_args():
     parser.add_argument('--num_epoch', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=4)
     parser.add_argument('--device', type=str, default='cuda:0')
-    parser.add_argument('--seed', type=int, default=66)
     parser.add_argument('--transformer', type=str, default='bert-base-cased')
 
     args = parser.parse_args()
