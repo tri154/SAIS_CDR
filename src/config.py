@@ -11,7 +11,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--dataset', type=str)
-    parser.add_argument('--save_path', type=str)
+    parser.add_argument('--save_path', type=str, help="file path to save model.")
 
     parser.add_argument('--log_path', type=str, default='log.txt')
     parser.add_argument('--seed', type=int, default=2004)
