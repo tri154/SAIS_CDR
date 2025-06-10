@@ -57,7 +57,7 @@ class Preprocessing:
                     tokens = tokens + [self.cfg.marker_entity]
                 sent_tokens += tokens
             sent_tokens = self.tokenizer.convert_tokens_to_ids(sent_tokens)
-            sent_tokens = self.tokenize.build_inputs_with_special_tokens(sent_tokens)
+            sent_tokens = self.tokenizer.build_inputs_with_special_tokens(sent_tokens)
             doc_tokens += sent_tokens
         doc_tokens = torch.Tensor(doc_tokens).int()
         doc_title = doc['title']
