@@ -26,7 +26,7 @@ class Preprocessing:
         self.dev_set = None
         self.test_set = None
 
-        for mode, corpus in self.cfg.file_copurses.items():
+        for mode, corpus in self.cfg.file_corpuses.items():
             corpus = json.load(open(corpus), 'r')
             corpus_data = self.__prepare_corpus(corpus) #a list of dict
             pk.dump(corpus_data, open(self.cfg.files_processed[mode], 'wb'), -1)
