@@ -1,6 +1,10 @@
 import argparse
 import os
 import json
+import random
+import torch
+import numpy as np
+import time
 
 
 def parse_args():
@@ -9,6 +13,7 @@ def parse_args():
     parser.add_argument('--dataset', type=str)
     parser.add_argument('--save_path', type=str)
 
+    parser.add_argument('--log_path', type=str, default='log.txt')
     parser.add_argument('--seed', type=int, default=2004)
     parser.add_argument('--num_epoch', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=4)
@@ -28,8 +33,10 @@ class Config:
         self.__dict__.update(vars(args))
 
         # process other configurations.
+        self.set_seed()
 
-
+        self.marker_entity = '*'
+        
         self.dir_curr = os.getcwd()
         self.dir_data = os.path.join(self.dir_curr, '../data')
         self.dir_dataset = os.path.join(self.dir_data, self.dataset)
@@ -59,7 +66,23 @@ class Config:
         if self.dataset == 'cdr':
             self.data_ner2word = {'CHEM': 'chemical', 'DISE': 'disease'}
             
+    def set_seed(self):
+        random.seed(self.seed)
+        np.random.seed(self.seed)
+        torch.manual_seed(self.seed)
+        torch.cuda.manual_seed(self.seed)
+        torch.cuda.manual_seed_all(self.seed)
 
+        torch.backends.cudnn.enabled = False
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        
+
+    def logging(self, text):
+        file = open(self.log_path, 'a')
+        print(time.strftime("%Y %b %d %a, %H:%M%S: "),
+              time.localtime() + text, file=file, flush=True)
+        file.close()
 
         
 

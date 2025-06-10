@@ -178,6 +178,7 @@ def prepare_batch_train(info, inputs, batch_size):
                 
         for doc_input in batch_inputs: #each document in batch
 
+            #
             batch_token_seqs.append(doc_input.doc_tokens) #list of doc token
             batch_token_masks.append(torch.ones(doc_input.doc_tokens.shape[0])) #list of token masks
 
@@ -186,6 +187,8 @@ def prepare_batch_train(info, inputs, batch_size):
                 batch_sent_tids.append(doc_input.sid2tids[sid][0]) #add start token of the sentence
                 doc_token_types[doc_input.sid2tids[sid][0] : doc_input.sid2tids[sid][1]] = sid % 2 # 0000 111 000 11 --> like indicator.
             batch_token_types.append(doc_token_types) #add number of token in the document
+            #
+
             batch_num_sents_per_doc.append(len(doc_input.sid2tids)) #add number of sentence in the document
 
             doc_mention_tids, doc_num_mentions_per_doc = [], []
