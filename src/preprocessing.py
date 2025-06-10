@@ -3,28 +3,23 @@ import json
 from dataset import Dataset
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import torch
+import dill as pk
 
 class Preprocessing:
     def __init__(self, cfg):
         self.cfg = cfg
         is_done = len(os.listdir(cfg.dir_dataset_pro)) != 1
 
-
-        
         if not is_done:
-            config = AutoConfig.from_pretrained(args.transformer, num_labels=info.NUM_REL)
-            self.tokenizer = AutoTokenizer.from_pretrained(args.transformer) # only load hidden states, that will output (batch_size, max_seq_length, 768) Bert case.
-            transformer = AutoModel.from_pretrained(args.transformer, config=config)
+            config = AutoConfig.from_pretrained(cfg.transformer, num_labels=cfg.num_rel)
+            self.tokenizer = AutoTokenizer.from_pretrained(cfg.transformer) # only load hidden states, that will output (batch_size, max_seq_length, 768) Bert case.
+            transformer = AutoModel.from_pretrained(cfg.transformer, config=config)
     
-            config.cls_token_id = tokenizer.cls_token_id
-            config.sep_token_id = tokenizer.sep_token_id
+            config.cls_token_id = self.tokenizer.cls_token_id
+            config.sep_token_id = self.tokenizer.sep_token_id
 
             self.prepare()
-        else:
-            #TODO: load it here.
-            self.train_set = None
-            self.dev_set = None
-            self.test_set = None
+        self.train_set, self.dev_set, self.test_set = map(lambda x: pk.load(open(self.cfg.file_processed[x], 'rb')), [self.cfg.train_set, self.cfg.dev_set, self.cfg.test_set])
 
     def prepare(self):
         self.train_set = None
@@ -34,8 +29,7 @@ class Preprocessing:
         for mode, corpus in self.cfg.file_copurses.items():
             corpus = json.load(open(corpus), 'r')
             corpus_data = self.__prepare_corpus(corpus) #a list of dict
-
-
+            pk.dump(corpus_data, open(self.cfg.files_processed[mode], 'wb'), -1)
 
     def __prepare_corpus(self, corpus):
         corpus_data = [] # list of dict

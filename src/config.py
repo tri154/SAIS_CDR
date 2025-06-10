@@ -44,7 +44,7 @@ class Config:
         self.dir_dataset_pro = os.path.join(self.dir_dataset, 'processed')
 
 
-        self.train_set = 'train_annotated'
+        self.train_set = 'train'
         self.dev_set = 'dev'
         self.test_set = 'test'
 
@@ -53,6 +53,13 @@ class Config:
         self.file_corpus_test = os.path.join(self.dir_dataset_ori, f'{self.test_set}.json')
 
         self.file_corpuses = {self.train_set: self.file_corpus_train, self.dev_set: self.file_corpus_dev, self.test_set: self.file_corpus_test}
+
+        self.file_processed_train = os.path.join(self.dir_dataset_pro, f'{self.train_set}_processed.pkl')
+        self.file_processed_dev = os.path.join(self.dir_dataset_pro, f'{self.dev_set}_processed.pkl')
+        self.file_processed_test = os.path.join(self.dir_dataset_pro, f'{self.test_set}_processed.pkl')
+
+        self.files_processed = {self.train_set: self.file_processed_train, self.dev_set: self.file_processed_dev, self.test_set: self.file_processed_test}
+
 
         self.data_ner2id = json.load(open(os.path.join(self.dir_dataset_ori, 'ner2id.json'), 'r'))
         self.data_rel2id = json.load(open(os.path.join(self.dir_dataset_ori, 'rel2id.json'), 'r'))
