@@ -19,7 +19,7 @@ class Preprocessing:
             config.sep_token_id = self.tokenizer.sep_token_id
 
             self.prepare()
-        self.train_set, self.dev_set, self.test_set = map(lambda x: pk.load(open(self.cfg.file_processed[x], 'rb')), [self.cfg.train_set, self.cfg.dev_set, self.cfg.test_set])
+        self.train_set, self.dev_set, self.test_set = map(lambda x: pk.load(open(self.cfg.files_processed[x], 'rb')), [self.cfg.train_set, self.cfg.dev_set, self.cfg.test_set])
 
     def prepare(self):
         self.train_set = None
