@@ -77,7 +77,7 @@ class Preprocessing:
 
         doc_data = {'doc_tokens': doc_tokens,
                     'doc_title': doc_title,
-                    'doc_start_mpos': }
+                    'doc_start_mpos': doc_start_mpos}
 
             
         return doc_data
