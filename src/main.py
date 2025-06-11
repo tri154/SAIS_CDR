@@ -9,9 +9,6 @@ if __name__ == '__main__':
 
     pre = Preprocessing(cfg)
     train_set, dev_set, test_set = pre.train_set, pre.dev_set, pre.test_set
-
-    
-
     # model = Model()
     # tester = Tester()
     # trainer = Trainer()

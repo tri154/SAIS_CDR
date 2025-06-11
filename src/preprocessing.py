@@ -4,6 +4,7 @@ from dataset import Dataset
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import torch
 import dill as pk
+from collections import defaultdict
 
 class Preprocessing:
     def __init__(self, cfg):
@@ -13,7 +14,7 @@ class Preprocessing:
         if not is_done:
             config = AutoConfig.from_pretrained(cfg.transformer, num_labels=cfg.num_rel)
             self.tokenizer = AutoTokenizer.from_pretrained(cfg.transformer) # only load hidden states, that will output (batch_size, max_seq_length, 768) Bert case.
-            transformer = AutoModel.from_pretrained(cfg.transformer, config=config)
+            transformer = AutoModel.from_pretrained(cfg.transformer, config=config) #NOTE: remove if not use.
     
             config.cls_token_id = self.tokenizer.cls_token_id
             config.sep_token_id = self.tokenizer.sep_token_id
@@ -41,29 +42,42 @@ class Preprocessing:
 
     def __prepare_doc(self, doc):
         start_mpos, end_mpos = set(), set()
+        sid_pos2eid = defaultdict(set)
         for eid, entity in enumerate(doc['vertexSet']):
             for mid, mention in enumerate(entity):
                 start_mpos.add((mention['sent_id'], mention['pos'][0]))
+                sid_pos2eid[(mention['sent_id'], mention['pos'][0])].add(eid)
                 end_mpos.add((mention['sent_id'], mention['pos'][1] - 1))
 
         doc_tokens = []
+        doc_start_mpos = defaultdict(set)
         for sid, sent in enumerate(doc['sents']): #each sentence
             sent_tokens = []
             for wid, word in enumerate(sent):
                 tokens = self.tokenizer.tokenize(word)
                 if (sid, wid) in start_mpos:
                     tokens = [self.cfg.marker_entity] + tokens
+                    for eid in sid_pos2eid[(sid, wid)]:
+                        doc_start_mpos[eid].add(len(doc_tokens) + len(sent_tokens) + 1)
+                        
                 if (sid, wid) in end_mpos:
                     tokens = tokens + [self.cfg.marker_entity]
                 sent_tokens += tokens
+            print(sent_tokens)
+            ori_l = len(sent_tokens)
             sent_tokens = self.tokenizer.convert_tokens_to_ids(sent_tokens)
+            if len(sent_tokens) != ori_l:
+                self.cfg.logging(f"It is a difference in convert id {len(sent_tokens)} != {ori_l}, {doc['title']}, {sid}")
             sent_tokens = self.tokenizer.build_inputs_with_special_tokens(sent_tokens)
+            if len(sent_tokens) != ori_l:
+                self.cfg.logging(f"It is a difference in build special {len(sent_tokens)} != {ori_l}, {doc['title']}, {sid}")
             doc_tokens += sent_tokens
         doc_tokens = torch.Tensor(doc_tokens).int()
         doc_title = doc['title']
 
         doc_data = {'doc_tokens': doc_tokens,
-                    'doc_title': doc_title}
+                    'doc_title': doc_title,
+                    'doc_start_mpos': }
 
             
         return doc_data
