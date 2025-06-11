@@ -85,10 +85,8 @@ class Config:
         
 
     def logging(self, text):
-        file = open(self.log_path, 'a')
-        print(time.strftime("%Y %b %d %a, %H:%M%S: "),
-              time.localtime() + text, file=file, flush=True)
-        file.close()
+        with open(self.log_path, 'a') as file:
+            print(time.strftime("%Y %b %d %a, %H:%M:%S: ") + text, file=file, flush=True)
 
         
 
