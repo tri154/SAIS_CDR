@@ -51,6 +51,7 @@ class Preprocessing:
 
         doc_tokens = []
         doc_start_mpos = defaultdict(set)
+        doc_sent_pos = dict()
         for sid, sent in enumerate(doc['sents']): #each sentence
             sent_tokens = []
             for wid, word in enumerate(sent):
@@ -59,25 +60,20 @@ class Preprocessing:
                     tokens = [self.cfg.marker_entity] + tokens
                     for eid in sid_pos2eid[(sid, wid)]:
                         doc_start_mpos[eid].add(len(doc_tokens) + len(sent_tokens) + 1)
-                        
                 if (sid, wid) in end_mpos:
                     tokens = tokens + [self.cfg.marker_entity]
                 sent_tokens += tokens
-            print(sent_tokens)
-            ori_l = len(sent_tokens)
             sent_tokens = self.tokenizer.convert_tokens_to_ids(sent_tokens)
-            if len(sent_tokens) != ori_l:
-                self.cfg.logging(f"It is a difference in convert id {len(sent_tokens)} != {ori_l}, {doc['title']}, {sid}")
             sent_tokens = self.tokenizer.build_inputs_with_special_tokens(sent_tokens)
-            if len(sent_tokens) != ori_l:
-                self.cfg.logging(f"It is a difference in build special {len(sent_tokens)} != {ori_l}, {doc['title']}, {sid}")
+            doc_sent_pos[sid] = (len(doc_tokens), len(doc_tokens) + len(sent_tokens))
             doc_tokens += sent_tokens
         doc_tokens = torch.Tensor(doc_tokens).int()
         doc_title = doc['title']
 
         doc_data = {'doc_tokens': doc_tokens,
                     'doc_title': doc_title,
-                    'doc_start_mpos': doc_start_mpos}
+                    'doc_start_mpos': doc_start_mpos,
+                    'doc_sent_pos': doc_sent_pos}
 
             
         return doc_data

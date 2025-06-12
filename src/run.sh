@@ -1,1 +1,1 @@
-python main.py --dataset cdr --save_path model.pt
+python main.py --dataset cdr 
