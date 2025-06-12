@@ -35,7 +35,7 @@ class Trainer:
                 batch_token_masks.append(torch.ones(doc_seqs_len))
                 doc_tokens_types = torch.zeros(doc_seqs_len)
 
-                for sid in range(doc_input['doc_sent_pos']):
+                for sid in range(len(doc_input['doc_sent_pos'])):
                     start, end = doc_input['doc_sent_pos'][sid][0], doc_input['doc_sent_pos'][sid][1]
                     doc_tokens_types[start:end] = sid % 2
 
