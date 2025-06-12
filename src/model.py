@@ -10,9 +10,9 @@ class Transformer(nn.Module):
         super(Transformer, self).__init__()
 
         self.cfg = cfg
-        config = AutoConfig.from_pretrained(cfg.TRANSFORMER, num_labels=cfg.NUM_REL)
-        self.tokenizer = AutoTokenizer.from_pretrained(cfg.TRANSFORMER)
-        self.transformer = AutoModel.from_pretrained(cfg.TRANSFORMER, config=config)
+        config = AutoConfig.from_pretrained(cfg.transformer, num_labels=cfg.num_rel)
+        self.tokenizer = AutoTokenizer.from_pretrained(cfg.transformer)
+        self.transformer = AutoModel.from_pretrained(cfg.transformer, config=config)
     
         self.max_num_tokens = 512
         
