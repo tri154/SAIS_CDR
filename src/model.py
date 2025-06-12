@@ -114,6 +114,10 @@ class Model(nn.Module):
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
 
+        print(batch_token_masks.device)
+        print(batch_token_masks.device)
+        print(batch_token_types.device)
+
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
 
         print(batch_token_embs.shape)
