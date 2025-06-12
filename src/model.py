@@ -120,8 +120,8 @@ class Model(nn.Module):
         for did, doc_entities in enumerate(batch_start_mpos):
             for eid, mentions_pos in enumerate(doc_entities):
                 print(mentions_pos)
-                print(batch_token_embs[did, mentions_pos].shape)
-                temp = torch.logsumexp(batch_token_embs[did, mentions_pos], dim=0)
+                print(batch_token_embs[did, mentions_pos, :].shape)
+                temp = torch.logsumexp(batch_token_embs[did, mentions_pos, :], dim=0)
                 print(temp.shape)
                 print(temp)
                 input()
@@ -136,6 +136,7 @@ class Model(nn.Module):
         batch_start_mpos = batch_input['batch_start_mpos']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
+        print(batch_input['batch_titles'][0])
         batch_entity_embs, mask = self.compute_entity_embs(batch_token_embs, batch_start_mpos)
         print(batch_entity_embs.shape)
         print(mask.shape)
