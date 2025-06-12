@@ -100,7 +100,14 @@ class Model(nn.Module):
     
     def __init__(self, cfg):
         super(Model, self).__init__()
+        self.cfg = cfg
         self.transformer = Transformer(cfg)
+        if cfg.transformer == 'bert-base-cased':
+            self.hidden_dim = 768
+        #NOTE: change if transformer changes.
+        self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
+        self.W_t = nn.Linear(self.hidden_dim, self.hidden_dim)
+        self.W_r = nn.Bilinear(self.hidden_dim, self.hidden_dim, cfg.num_rel)
     
 
 
@@ -137,6 +144,6 @@ class Model(nn.Module):
         
 
         # print(batch_token_embs.shape) # (b, l, 768)
-        # print(batch_token_seqs.shape)
+        # print(batch_token_seqs.shape) b, N_max, 768
 
         

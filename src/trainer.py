@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn.utils.rnn as rnn
 import math
+from itertools import permutations
 
 class Trainer:
     def __init__(self, cfg, model, train_set=None, tester=None):
@@ -31,7 +32,8 @@ class Trainer:
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
                 batch_token_seqs.append(doc_input['doc_tokens'])
-                batch_start_mpos.append(doc_input['doc_start_mpos'])
+                doc_start_mpos = doc_input['doc_start_mpos']
+                batch_start_mpos.append(doc_start_mpos)
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -43,11 +45,22 @@ class Trainer:
 
                 batch_token_types.append(doc_tokens_types)
 
+                #pair
+                max_n_m_p_e = max([len(mention_pos) for mention_pos in doc_start_mpos.values()])# max number of mention per entity
+                print(doc_start_mpos.keys())
+                input()
+
+                for eid_i, eid_j in permutations(doc_start_mpos.keys(), 2):
+                    pass
+
+
+
 
             batch_token_seqs = rnn.pad_sequence(batch_token_seqs, batch_first=True, padding_value=0).long().to(self.cfg.device)
             batch_token_masks = rnn.pad_sequence(batch_token_masks, batch_first=True, padding_value=0).float().to(self.cfg.device)
             batch_token_types = rnn.pad_sequence(batch_token_types, batch_first=True, padding_value=0).long().to(self.cfg.device)
 
+            
 
             yield {'batch_titles': np.array(batch_titles),
                     'batch_token_seqs': batch_token_seqs,

@@ -223,9 +223,9 @@ class Model(nn.Module):
     def get_epair_infos(self, batch_token_embs, batch_token_atts, batch_epair_tids, batch_epair_masks, batch_num_epairs_per_doc):
         
         batch_epair_dids = torch.arange(batch_num_epairs_per_doc.shape[0]).repeat_interleave(batch_num_epairs_per_doc).unsqueeze(-1).unsqueeze(-1)
-        batch_token_embs = F.pad(batch_token_embs, (0,0,0,1), value=self.info.EXTREME_SMALL_NEGA)
+        batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.info.EXTREME_SMALL_NEGA)
         batch_epair_embs = batch_token_embs[batch_epair_dids, batch_epair_tids].logsumexp(-2)
-        batch_epair_reps = [self.head_extractor_module(batch_epair_embs[:,0,:]), self.tail_extractor_module(batch_epair_embs[:,1,:])]
+        batch_epair_reps = [self.head_extractor_module(batch_epair_embs[:, 0, :]), self.tail_extractor_module(batch_epair_embs[:,1,:])]
         
         batch_token_atts = F.pad(batch_token_atts.mean(1), (0,0,0,1))
         batch_epair_atts = batch_token_atts[batch_epair_dids, batch_epair_tids].sum(-2)
