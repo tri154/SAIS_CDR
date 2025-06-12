@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -112,7 +113,7 @@ class Model(nn.Module):
     def compute_entity_embs(self, batch_token_embs, batch_start_mpos):
         B, L, H = batch_token_embs.shape
 
-        N_max = torch.max([len(doc_entities) for doc_entities in batch_start_mpos])
+        N_max = np.max([len(doc_entities) for doc_entities in batch_start_mpos])
         batch_entity_embs = torch.zeros((B, N_max, H))
         mask = torch.zeros((B, N_max))
 
