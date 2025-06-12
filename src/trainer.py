@@ -31,7 +31,7 @@ class Trainer:
                 batch_titles.append(doc_input['doc_title'])
                 batch_token_seqs.append(doc_input['doc_tokens'])
 
-                doc_seqs_len = torch.ones(doc_input['doc_tokens'].shape[0])
+                doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
                 doc_tokens_types = torch.zeros(doc_seqs_len)
 
