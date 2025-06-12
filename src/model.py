@@ -98,5 +98,22 @@ class Model(nn.Module):
         super(Model, self).__init__()
         self.transformer = Transformer(cfg)
     
-    def forward(self,):
-        pass
+
+
+    # yield {'batch_titles': np.array(batch_titles),
+    #         'batch_token_seqs': batch_token_seqs,
+    #         'batch_token_masks': batch_token_masks,
+    #         'batch_token_types': batch_token_types}
+
+
+    def forward(self, batch_input):
+        batch_token_seqs = batch_input['batch_token_seqs']
+        batch_token_masks = batch_input['batch_token_masks']
+        batch_token_types = batch_input['batch_token_types']
+
+        batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
+
+        print(batch_token_embs.shape)
+        print(batch_token_seqs.shape)
+
+        

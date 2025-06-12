@@ -54,9 +54,8 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(self.cfg.batch_size)):
-            for key, value in batch_input.items():
-                print(f"Key: {key}, Value: {value.shape}")
-                print(value[0])
+            self.model(batch_input)
+            input("Stop")
                 
 
     def one_epoch_train(self, batch_size):

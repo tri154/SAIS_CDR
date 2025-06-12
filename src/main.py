@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     pre = Preprocessing(cfg)
     train_set, dev_set, test_set = pre.train_set, pre.dev_set, pre.test_set
-    model = None #TODO
+    model = Model(cfg)#TODO
     tester = None #TODO
     trainer = Trainer(cfg, model, train_set=train_set, tester=tester)
     trainer.debug()
