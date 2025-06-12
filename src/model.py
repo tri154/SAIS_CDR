@@ -13,12 +13,15 @@ class Transformer(nn.Module):
         config = AutoConfig.from_pretrained(cfg.transformer, num_labels=cfg.num_rel)
         self.tokenizer = AutoTokenizer.from_pretrained(cfg.transformer)
         self.transformer = AutoModel.from_pretrained(cfg.transformer, config=config)
+
+        config.cls_token_id = self.tokenizer.cls_token_id
+        config.sep_token_id = self.tokenizer.sep_token_id
     
         self.max_num_tokens = 512
         
         self.start_token_len, self.end_token_len = 1, 1
-        self.start_token_ids = torch.Tensor([self.transformer.config.cls_token_id]).to(cfg.DEVICE_GPU)
-        self.end_token_ids = torch.Tensor([self.transformer.config.sep_token_id]).to(cfg.DEVICE_GPU)
+        self.start_token_ids = torch.Tensor([self.transformer.config.cls_token_id]).to(cfg.device)
+        self.end_token_ids = torch.Tensor([self.transformer.config.sep_token_id]).to(cfg.device)
         
         
     def forward(self, batch_token_seqs, batch_token_masks, batch_token_types):
