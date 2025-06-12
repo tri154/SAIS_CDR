@@ -26,10 +26,12 @@ class Trainer:
 
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
             batch_titles = []
+            batch_start_mpos = []
 
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
                 batch_token_seqs.append(doc_input['doc_tokens'])
+                batch_start_mpos.append(doc_input['doc_start_mpos'])
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -50,7 +52,8 @@ class Trainer:
             yield {'batch_titles': np.array(batch_titles),
                     'batch_token_seqs': batch_token_seqs,
                     'batch_token_masks': batch_token_masks,
-                    'batch_token_types': batch_token_types}
+                    'batch_token_types': batch_token_types,
+                    'batch_start_mpos': batch_start_mpos}
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(self.cfg.batch_size)):

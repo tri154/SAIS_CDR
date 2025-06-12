@@ -109,18 +109,36 @@ class Model(nn.Module):
     #         'batch_token_types': batch_token_types}
 
 
+    def compute_entity_embs(self, batch_token_embs, batch_start_mpos):
+        B, L, H = batch_token_embs.shape
+
+        N_max = torch.max([len(doc_entities) for doc_entities in batch_start_mpos])
+        batch_entity_embs = torch.zeros((B, N_max, H))
+        mask = torch.zeros((B, N_max))
+
+        for did, doc_entities in enumerate(batch_start_mpos):
+            for eid, mentions_pos in enumerate(doc_entities):
+                batch_entity_embs[did, eid] = torch.logsumexp(batch_token_embs[did, eid, mentions_pos])
+                mask[did, eid] = 1
+        return batch_entity_embs, mask
+
     def forward(self, batch_input):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
-
-        print(batch_token_masks.device)
-        print(batch_token_masks.device)
-        print(batch_token_types.device)
+        batch_start_mpos = batch_input['batch_start_mpos']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
+        batch_entity_embs, mask = self.compute_entity_embs(batch_token_embs, batch_start_mpos)
+        print(batch_entity_embs.shape)
+        print(mask.shape)
 
-        print(batch_token_embs.shape)
-        print(batch_token_seqs.shape)
+        print(batch_entity_embs[0, 0])
+        print(mask[0, 0])
+
+        
+
+        # print(batch_token_embs.shape) # (b, l, 768)
+        # print(batch_token_seqs.shape)
 
         
