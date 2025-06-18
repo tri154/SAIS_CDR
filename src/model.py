@@ -105,6 +105,7 @@ class Model(nn.Module):
         if cfg.transformer == 'bert-base-cased':
             self.hidden_dim = 768
         #NOTE: change if transformer changes.
+        # temporary.
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.W_t = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.W_r = nn.Bilinear(self.hidden_dim, self.hidden_dim, cfg.num_rel)

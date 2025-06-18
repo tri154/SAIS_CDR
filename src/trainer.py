@@ -12,7 +12,7 @@ class Trainer:
         self.tester = tester
 
         print()
-        #TODO: optimizer
+        # TODO: optimizer
 
         # doc_data = {'doc_tokens': doc_tokens,
         #             'doc_title': doc_title,
@@ -45,13 +45,17 @@ class Trainer:
 
                 batch_token_types.append(doc_tokens_types)
 
-                #pair
+                # pair
                 max_n_m_p_e = max([len(mention_pos) for mention_pos in doc_start_mpos.values()])# max number of mention per entity
-                print(doc_start_mpos.keys())
-                input()
-
+                doc_epair_start_mpos = []
                 for eid_i, eid_j in permutations(doc_start_mpos.keys(), 2):
-                    pass
+                    epair_start_mpos = torch.full((2, max_n_m_p_e), -1)
+                    epair_start_mpos[0, :len(doc_start_mpos[eid_i])] = torch.Tensor(list(doc_start_mpos[eid_i])).long()
+                    epair_start_mpos[1, :len(doc_start_mpos[eid_j])] = torch.Tensor(list(doc_start_mpos[eid_j])).long()
+                    doc_epair_start_mpos.append(epair_start_mpos)
+
+                    # epair_start_mpos_mask = torch.ones((2, ??))
+
 
 
             batch_token_seqs = rnn.pad_sequence(batch_token_seqs, batch_first=True, padding_value=0).long().to(self.cfg.device)
@@ -68,7 +72,6 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(self.cfg.batch_size)):
-            self.model(batch_input)
             input("Stop")
                 
 
