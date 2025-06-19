@@ -54,18 +54,7 @@ class Trainer:
             max_m_n_p_b = max([len(mention_pos) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()])  # max mention number in batch.
 
             num_entity_per_doc = torch.tensor([len(doc_start_mpos.values()) for doc_start_mpos in batch_start_mpos]) # Keep it on CPU.
-            batch_start_mpos = torch.stack([F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()])
-            # cursed code.
-             
-            # temp = []
-            # num_entity_per_doc = []
-            # for doc_start_mpos in batch_start_mpos:
-            #     num_entity_per_doc.append(len(doc_start_mpos.values()))
-            #     for mention_pos in doc_start_mpos.values():
-            #         temp.append(F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1))
-
-            # batch_start_mpos = torch.stack(temp) #expecting: [sum entity, max_mention]
-            # num_entity_per_doc = torch.tensor(num_entity_per_doc) # keep in cpu.
+            batch_start_mpos = torch.stack([F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()]).to(self.cfg.device)
 
             yield {'batch_titles': np.array(batch_titles),
                     'batch_token_seqs': batch_token_seqs,

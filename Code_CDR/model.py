@@ -103,7 +103,7 @@ class Loss:
         batch_epair_thresholds[:, self.info.ID_REL_THRE] = 1
         batch_epair_relations[:, self.info.ID_REL_THRE] = 0
         
-        batch_posi_masks = batch_epair_relations + batch_epair_thresholds        
+        batch_posi_masks = batch_epair_relations + batch_epair_thresholds
         batch_posi_reps = batch_RE_reps + (1 - batch_posi_masks) * self.info.EXTREME_SMALL_NEGA
         batch_posi_loss = - (F.log_softmax(batch_posi_reps, dim=-1) * batch_epair_relations).sum(1)
         
@@ -227,7 +227,7 @@ class Model(nn.Module):
         batch_epair_embs = batch_token_embs[batch_epair_dids, batch_epair_tids].logsumexp(-2)
         batch_epair_reps = [self.head_extractor_module(batch_epair_embs[:, 0, :]), self.tail_extractor_module(batch_epair_embs[:,1,:])]
         
-        batch_token_atts = F.pad(batch_token_atts.mean(1), (0,0,0,1))
+        batch_token_atts = F.pad(batch_token_atts.mean(1), (0, 0, 0, 1))
         batch_epair_atts = batch_token_atts[batch_epair_dids, batch_epair_tids].sum(-2)
         batch_epair_atts /= (batch_epair_tids!=-1).sum(-1, keepdim=True).clamp(min=1).to(self.info.DEVICE_GPU)
         batch_epair_atts = batch_epair_atts.prod(-2) * batch_epair_masks

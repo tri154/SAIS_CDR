@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+from itertools import permutations
 
 
 class Transformer(nn.Module):
@@ -105,12 +106,10 @@ class Model(nn.Module):
         if cfg.transformer == 'bert-base-cased':
             self.hidden_dim = 768
         #NOTE: change if transformer changes.
-        # temporary.
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.W_t = nn.Linear(self.hidden_dim, self.hidden_dim)
-        self.W_r = nn.Bilinear(self.hidden_dim, self.hidden_dim, cfg.num_rel)
     
-
+        self.RE_predictor_module = nn.Linear(self.hidden_dim * self.cfg.bilinear_block_size, self.cfg.num_rel)
 
         # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
         #             'doc_title': doc_title,
@@ -120,34 +119,11 @@ class Model(nn.Module):
 
     def compute_entity_embs(self, batch_token_embs, batch_start_mpos, num_entity_per_doc):
         # batch_start_mpos: (sum_entity, max_mention_n) pad -1
-
-        # output: [?, 2, 768]
-        # B, L, H = batch_token_embs.shape
-
-        # N_max = np.max([len(doc_entities) for doc_entities in batch_start_mpos])
-        # batch_entity_embs = torch.zeros((B, N_max, H))
-        # mask = torch.zeros((B, N_max))
-        
-        # for did, doc_entities in enumerate(batch_start_mpos):
-        #     for eid, mentions_pos in doc_entities.items():
-        #         temp = torch.logsumexp(batch_token_embs[did, list(mentions_pos)], dim=0)
-        #         batch_entity_embs[did, eid] = temp
-        #         mask[did, eid] = 1
-
-        # print(batch_entity_embs[0, 0])
-
-        # return batch_entity_embs 
-    
-        # DOING: optimize to get output.
-        # ERROR: order of apply indexing? ???
-        
         batch_did = torch.arange(len(batch_token_embs)).repeat_interleave(num_entity_per_doc).unsqueeze(-1)
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
-        print(batch_entity_embs.shape)
-        print(batch_entity_embs[0])
-        return batch_entity_embs
+        return batch_entity_embs 
         
 
     def forward(self, batch_input):
@@ -159,9 +135,40 @@ class Model(nn.Module):
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
+        print(f"batch_entity_embs.shape: {batch_entity_embs.shape}")
+
+
+        start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
+
+        head_entity_pairs = list()
+        tail_entity_pairs = list()
+
+        for did in range(len(start_entity_pos) - 1):
+            for eid_h, eid_t in permutations(np.arange(start_entity_pos[did], start_entity_pos[did + 1]), 2):
+                head_entity_pairs.append(eid_h)
+                tail_entity_pairs.append(eid_t)
+
+        head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
+        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
+
+        head_entity_embs = batch_entity_embs[head_entity_pairs]
+        tail_entity_embs = batch_entity_embs[tail_entity_pairs]
+
+        head_entity_rep = self.W_h(head_entity_embs)
+        tail_entity_rep = self.W_t(tail_entity_embs)
+        print(head_entity_rep.shape)
+        print(tail_entity_rep.shape)
+
+
 
         
 
+        # Do something under there like apply a linear layer for head, a linear layer for tail.
+        
+
+        # print(head_entity_embs.shape) # (50, 768)
+        # print(tail_entity_embs.shape) # (50, 768)
+        # print(batch_token_atts.shape) # (4, 12, 370, 370) doc, n_head, max_length
         # print(batch_token_embs.shape) # (b, l, 768)
         # print(batch_token_seqs.shape) b, N_max, 768
 
