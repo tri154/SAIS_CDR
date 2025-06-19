@@ -112,35 +112,53 @@ class Model(nn.Module):
     
 
 
-    # yield {'batch_titles': np.array(batch_titles),
-    #         'batch_token_seqs': batch_token_seqs,
-    #         'batch_token_masks': batch_token_masks,
-    #         'batch_token_types': batch_token_types}
+        # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
+        #             'doc_title': doc_title,
+        #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.
+        #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
 
 
-    def compute_entity_embs(self, batch_token_embs, batch_start_mpos):
-        B, L, H = batch_token_embs.shape
+    def compute_entity_embs(self, batch_token_embs, batch_start_mpos, num_entity_per_doc):
+        # batch_start_mpos: (sum_entity, max_mention_n) pad -1
 
-        N_max = np.max([len(doc_entities) for doc_entities in batch_start_mpos])
-        batch_entity_embs = torch.zeros((B, N_max, H))
-        mask = torch.zeros((B, N_max))
+        # output: [?, 2, 768]
+        # B, L, H = batch_token_embs.shape
+
+        # N_max = np.max([len(doc_entities) for doc_entities in batch_start_mpos])
+        # batch_entity_embs = torch.zeros((B, N_max, H))
+        # mask = torch.zeros((B, N_max))
         
-        for did, doc_entities in enumerate(batch_start_mpos):
-            for eid, mentions_pos in doc_entities.items():
-                temp = torch.logsumexp(batch_token_embs[did, list(mentions_pos)], dim=0)
-                batch_entity_embs[did, eid] = temp
-                mask[did, eid] = 1
+        # for did, doc_entities in enumerate(batch_start_mpos):
+        #     for eid, mentions_pos in doc_entities.items():
+        #         temp = torch.logsumexp(batch_token_embs[did, list(mentions_pos)], dim=0)
+        #         batch_entity_embs[did, eid] = temp
+        #         mask[did, eid] = 1
 
-        return batch_entity_embs, mask
+        # print(batch_entity_embs[0, 0])
+
+        # return batch_entity_embs 
+    
+        # DOING: optimize to get output.
+        # ERROR: order of apply indexing? ???
+        
+        batch_did = torch.arange(len(batch_token_embs)).repeat_interleave(num_entity_per_doc).unsqueeze(-1)
+        batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
+        batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
+
+        print(batch_entity_embs.shape)
+        print(batch_entity_embs[0])
+        return batch_entity_embs
+        
 
     def forward(self, batch_input):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
         batch_start_mpos = batch_input['batch_start_mpos']
+        num_entity_per_doc = batch_input['num_entity_per_doc']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
-        batch_entity_embs, mask = self.compute_entity_embs(batch_token_embs, batch_start_mpos)
+        batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
 
         
 

@@ -36,6 +36,9 @@ class Config:
         # process other configurations.
         self.set_seed()
 
+        self.small_negative = -1e10
+        self.small_positive = 1e-10
+
         self.marker_entity = '*'
         
         self.dir_curr = os.getcwd()

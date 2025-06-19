@@ -23,7 +23,13 @@ class Preprocessing:
         self.train_set, self.dev_set, self.test_set = map(lambda x: pk.load(open(self.cfg.files_processed[x], 'rb')), [self.cfg.train_set, self.cfg.dev_set, self.cfg.test_set])
 
     def prepare(self):
-        self.train_set = None
+        # Save a list of per doc data on each corpus.
+        # Where each doc store:
+        # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
+        #             'doc_title': doc_title,
+        #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.
+        #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
+        self.train_set = None 
         self.dev_set = None
         self.test_set = None
 
@@ -77,12 +83,4 @@ class Preprocessing:
 
             
         return doc_data
-
-
-
-                
-
-
-            
-
 
