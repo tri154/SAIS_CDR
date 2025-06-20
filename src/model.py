@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 from itertools import permutations
+from loss import Loss
 
 
 class Transformer(nn.Module):
@@ -104,11 +105,10 @@ class Model(nn.Module):
         self.cfg = cfg
         self.transformer = Transformer(cfg)
         if cfg.transformer == 'bert-base-cased':
-            self.hidden_dim = 768
-        #NOTE: change if transformer changes.
+            self.hidden_dim = 768 #NOTE: change if transformer changes.
+        self.loss = Loss(cfg)
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.W_t = nn.Linear(self.hidden_dim, self.hidden_dim)
-    
         self.RE_predictor_module = nn.Linear(self.hidden_dim * self.cfg.bilinear_block_size, self.cfg.num_rel)
 
         # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
@@ -126,7 +126,7 @@ class Model(nn.Module):
         return batch_entity_embs 
         
 
-    def forward(self, batch_input):
+    def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
@@ -171,9 +171,10 @@ class Model(nn.Module):
         batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
         batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
 
-        print(batch_RE_reps.shape)
-        print(batch_labels.shape)
-
+        if is_training:
+            return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
+        else:
+            return self.loss.ATLOP_pred(batch_RE_reps, batch_labels)
        
 
         # print(head_entity_embs.shape) # (50, 768)

@@ -1,6 +1,5 @@
 import os 
 import json
-from dataset import Dataset
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import torch
 import dill as pk

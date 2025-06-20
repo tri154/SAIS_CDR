@@ -80,7 +80,7 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(self.cfg.batch_size)):
-            self.model(batch_input)
+            self.model(batch_input, is_training=True)
             input("Stop")
                 
 
@@ -91,7 +91,7 @@ class Trainer:
         np.random.shuffle(self.train_set)
 
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(batch_size)):
-            batch_loss = self.model(batch_input)
+            batch_loss = self.model(batch_input, is_training=True)
 
 
     def train(self, num_epoches, batch_size, train_set=None):
