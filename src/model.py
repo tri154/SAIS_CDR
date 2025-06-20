@@ -155,8 +155,10 @@ class Model(nn.Module):
                 head_entity_pairs.append(eid_h)
                 tail_entity_pairs.append(eid_t)
 
+
         head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
         tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
+        batch_labels = torch.stack(batch_labels).to(self.cfg.device)
 
         head_entity_embs = batch_entity_embs[head_entity_pairs]
         tail_entity_embs = batch_entity_embs[tail_entity_pairs]
@@ -170,7 +172,7 @@ class Model(nn.Module):
         batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
 
         print(batch_RE_reps.shape)
-        # TODO: don't have lablels to compute loss.
+        print(batch_labels.shape)
 
        
 
