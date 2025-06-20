@@ -80,7 +80,8 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(self.cfg.batch_size)):
-            self.model(batch_input, is_training=True)
+            result = self.model(batch_input, is_training=False)
+            print(result)
             input("Stop")
                 
 

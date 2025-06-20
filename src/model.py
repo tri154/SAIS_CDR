@@ -174,13 +174,7 @@ class Model(nn.Module):
         if is_training:
             return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
         else:
-            return self.loss.ATLOP_pred(batch_RE_reps, batch_labels)
+            return self.loss.ATLOP_pred(batch_RE_reps)
        
-
-        # print(head_entity_embs.shape) # (50, 768)
-        # print(tail_entity_embs.shape) # (50, 768)
-        # print(batch_token_atts.shape) # (4, 12, 370, 370) doc, n_head, max_length
-        # print(batch_token_embs.shape) # (b, l, 768)
-        # print(batch_token_seqs.shape) b, N_max, 768
 
         

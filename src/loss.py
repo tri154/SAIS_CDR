@@ -21,9 +21,16 @@ class Loss:
 
         return (batch_pos_loss + batch_neg_loss).mean()
 
-    def ATLOP_pred(self, batch_RE_reps):
-        batch_pred = 
-
+    def ATLOP_pred(self, logits):
+        th_logit = logits[:, 0].unsqueeze(1)
+        output = torch.zeros_like(logits).to(logits)
+        mask = (logits > th_logit)
+        top_v, _ = torch.topk(logits, self.cfg.topk, dim=1)
+        top_v = top_v[:, -1]
+        mask = (logits >= top_v.unsqueeze(1)) & mask
+        output[mask] = 1.0
+        output[:, 0] = (output.sum(1) == 0.).to(logits)
+        return output
 
 
 

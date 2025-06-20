@@ -77,6 +77,8 @@ class Config:
 
         if self.dataset == 'cdr':
             self.data_ner2word = {'CHEM': 'chemical', 'DISE': 'disease'}
+            self.topk = 1
+
             
     def set_seed(self):
         random.seed(self.seed)
