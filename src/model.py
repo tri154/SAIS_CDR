@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 from itertools import permutations
 from loss import Loss
+from transformers.opimization import Adamw, get_linear_schedule_with_warm_up
 
 
 class Transformer(nn.Module):
@@ -99,7 +100,6 @@ class Transformer(nn.Module):
     
     
 class Model(nn.Module):
-    
     def __init__(self, cfg):
         super(Model, self).__init__()
         self.cfg = cfg
@@ -111,6 +111,26 @@ class Model(nn.Module):
         self.W_t = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.RE_predictor_module = nn.Linear(self.hidden_dim * self.cfg.bilinear_block_size, self.cfg.num_rel)
 
+    def prepare_optimizer_scheduler(self, num_train_docs):
+        grouped_parameters = defaultdict(list)
+        for name, param in self.model.named_parameters():
+            if 'transformer' in name:             
+                grouped_parameters['pretrained_lr'].append(param)
+            else:
+                grouped_parameters['new_lr'].append(param)
+
+        grouped_lrs = [{'params': grouped_parameters[group], 'lr': lr} for group, lr in zip(['pretrained_lr', 'new_lr'], [self.cfg.pretrained_lr, self.cfg.new_lr])]
+        optimizer = Adamw(grouped_lrs)
+
+        num_updates = math.ceil(math.ceil(num_train_docs / self.cfg.batch_size) / self.cfg.update_freq) * self.cfg.num_epoch
+        num_warmups = int(num_updates * self.cfg.warmup_ratio)
+        scheduler = get_linear_schedule_with_warm_up(opimizer, num_warmup_step=num_warmups, num_training_steps=num_updates)
+        
+        return optimizer, scheduler
+
+
+
+        
         # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
         #             'doc_title': doc_title,
         #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.

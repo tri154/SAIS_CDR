@@ -4,6 +4,7 @@ import torch.nn.utils.rnn as rnn
 import math
 from itertools import permutations
 import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
 
 class Trainer:
     def __init__(self, cfg, model, train_set=None, tester=None):
@@ -14,6 +15,7 @@ class Trainer:
 
         print()
         # TODO: optimizer
+        self.optimzier, self.scheduler = model.prepare_optimizer_scheduler(len(train_set))
 
         # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
         #             'doc_title': doc_title,
@@ -90,9 +92,16 @@ class Trainer:
         self.optimizer.zero_grad()
 
         np.random.shuffle(self.train_set)
-
+        num_batch = math.ceil(len(self.train_set) / self.cfg.batch_size)
         for idx_batch, batch_input in enumerate(self.prepare_batch_train(batch_size)):
             batch_loss = self.model(batch_input, is_training=True)
+            (batch_loss / self.cfg.update_freq).backward()
+
+            if (idx_batch + 1) % self.cfg.update_freq == 0 or idx_batch + 1 == num_batch:
+                clip_grad_norm_(self.model.parameters(), self.cfg.max_grad_norm)
+                self.optimizer.step()
+                self.optimizer.zero_grad()
+                self.scheduler.step()
 
 
     def train(self, num_epoches, batch_size, train_set=None):
