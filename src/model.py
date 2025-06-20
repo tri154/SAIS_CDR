@@ -83,10 +83,10 @@ class Transformer(nn.Module):
                     new_token_mask2 = F.pad(batch_token_masks[seg_id + 1][self.start_token_len:], (valid_num_token2 + self.start_token_len, batch_num_tokens - real_num_token))
                     new_token_att2 = F.pad(batch_token_atts[seg_id + 1][:, self.start_token_len:, self.start_token_len:], (valid_num_token2 + self.start_token_len, batch_num_tokens - real_num_token, valid_num_token2 + self.start_token_len, batch_num_tokens - real_num_token))
                     
-                    new_token_mask = new_token_mask1 + new_token_mask2 + self.info.EXTREME_SMALL_POSI
+                    new_token_mask = new_token_mask1 + new_token_mask2 + self.cfg.small_positive
                     new_token_emb = (new_token_emb1 + new_token_emb2) / new_token_mask.unsqueeze(-1)
                     new_token_att = (new_token_att1 + new_token_att2)
-                    new_token_att /= (new_token_att.sum(-1, keepdim=True) + self.info.EXTREME_SMALL_POSI)
+                    new_token_att /= (new_token_att.sum(-1, keepdim=True) + self.cfg.small_positive)
                     new_token_embs.append(new_token_emb)
                     new_token_atts.append(new_token_att)
                     
@@ -131,20 +131,27 @@ class Model(nn.Module):
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
         batch_start_mpos = batch_input['batch_start_mpos']
+        batch_epair_rels = batch_input['batch_epair_rels']
         num_entity_per_doc = batch_input['num_entity_per_doc']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
-        print(f"batch_entity_embs.shape: {batch_entity_embs.shape}")
 
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
 
         head_entity_pairs = list()
         tail_entity_pairs = list()
+        batch_labels = list()
 
         for did in range(len(start_entity_pos) - 1):
-            for eid_h, eid_t in permutations(np.arange(start_entity_pos[did], start_entity_pos[did + 1]), 2):
+            doc_epair_rels = batch_epair_rels[did]
+            offset = int(start_entity_pos[did])
+            for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
+                pair_labels = torch.zeros(self.cfg.num_rel)
+                for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
+                    pair_labels[self.cfg.data_rel2id[r]] = 1
+                batch_labels.append(pair_labels)
                 head_entity_pairs.append(eid_h)
                 tail_entity_pairs.append(eid_t)
 
@@ -154,17 +161,18 @@ class Model(nn.Module):
         head_entity_embs = batch_entity_embs[head_entity_pairs]
         tail_entity_embs = batch_entity_embs[tail_entity_pairs]
 
-        head_entity_rep = self.W_h(head_entity_embs)
-        tail_entity_rep = self.W_t(tail_entity_embs)
-        print(head_entity_rep.shape)
-        print(tail_entity_rep.shape)
+        head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
+        tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
 
+        head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
+        batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
 
+        print(batch_RE_reps.shape)
+        # TODO: don't have lablels to compute loss.
 
-        
-
-        # Do something under there like apply a linear layer for head, a linear layer for tail.
-        
+       
 
         # print(head_entity_embs.shape) # (50, 768)
         # print(tail_entity_embs.shape) # (50, 768)

@@ -76,10 +76,16 @@ class Preprocessing:
         doc_tokens = torch.Tensor(doc_tokens).int()
         doc_title = doc['title']
 
+        doc_epair_rels = defaultdict(list)
+        for rel in doc['labels']:
+            h, t, r = rel['h'], rel['t'], rel['r']
+            doc_epair_rels[(h, t)].append(r)
+
         doc_data = {'doc_tokens': doc_tokens,
                     'doc_title': doc_title,
                     'doc_start_mpos': doc_start_mpos,
-                    'doc_sent_pos': doc_sent_pos}
+                    'doc_sent_pos': doc_sent_pos,
+                    'doc_epair_rels': doc_epair_rels}
 
             
         return doc_data

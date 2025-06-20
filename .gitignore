@@ -1,3 +1,4 @@
 .idea
 push.sh
 __pycache__
+*.pkl
