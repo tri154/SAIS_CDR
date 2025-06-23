@@ -6,6 +6,7 @@ import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 from collections import defaultdict
 from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+from tqdm import tqdm
 
 
 class Trainer:
@@ -15,15 +16,16 @@ class Trainer:
         self.train_set = train_set
         self.tester = tester
 
-        print()
-        # TODO: optimizer
         self.opt, self.sched = self.prepare_optimizer_scheduler()
 
-        # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
-        #             'doc_title': doc_title,
-        #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.
-        #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
-    def prepare_optimizer_scheduler(self, ):
+
+    # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
+    #             'doc_title': doc_title,
+    #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.
+    #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
+
+
+    def prepare_optimizer_scheduler(self):
         grouped_params = defaultdict(list)
         for name, param in self.model.named_parameters():
             if 'transformer' in name:
@@ -36,7 +38,7 @@ class Trainer:
 
         num_updates = math.ceil(math.ceil(len(self.train_set) / self.cfg.batch_size) / self.cfg.update_freq) * self.cfg.num_epoch
         num_warmups = int(num_updates * self.cfg.warmup_ratio)
-        sched = get_linear_schedule_with_warmup(opt,num_warmups, num_updates)
+        sched = get_linear_schedule_with_warmup(opt, num_warmups, num_updates)
 
         return opt, sched
                
@@ -129,25 +131,16 @@ class Trainer:
         if train_set is not None:
             self.train_set = train_set
 
-        best_score, best_epoch = 0, 0
-        for idx_epoch in range(num_epoches):
+        best_f1, best_epoch = 0, 0
+        for idx_epoch in tqdm(range(num_epoches)):
 
             self.train_one_epoch(batch_size)
-            score = self.tester.test(self.model, dataset='dev')
+            presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
+            print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
 
-            if score >= best_score:
-                best_score, best_epoch = score, idx_epoch
+            if f1 >= best_f1:
+                best_f1, best_epoch = f1, idx_epoch
                 torch.save(self.model.state_dict(), self.save_path)
 
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
-        self.tester.test(self.model)
-                
-
-
-
-
-
-
-        
-
-        
+        precision, recall, f1 = self.tester.test(self.model, dataset='test')

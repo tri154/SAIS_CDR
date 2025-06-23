@@ -12,5 +12,5 @@ if __name__ == '__main__':
     model = Model(cfg).to(cfg.device)
     tester = Tester(cfg, dev_set=dev_set, test_set=test_set)
     trainer = Trainer(cfg, model, train_set=train_set, tester=tester)
-    trainer.debug()
+    trainer.train()
     # trainer.train(cfg.num_epoches, cfg.batch_size)

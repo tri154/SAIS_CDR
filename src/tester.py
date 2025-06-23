@@ -10,13 +10,6 @@ class Tester:
         self.dev_set = dev_set
         self.test_set = test_set
 
-    # def test_dev(self, dev_set=None):
-    #     self.dev_set = dev_set if dev_set is not None else self.dev_set
-
-    # def test(self, test_set=None):
-    #     self.test_set = test_set if test_set is not None else self.dev_set
-
-
     def prepare_batch(self, batch_size, dataset='dev'):
         inputs = self.test_set if dataset == 'test' else self.dev_set 
         num_batch = math.ceil(len(inputs) / batch_size)
@@ -74,7 +67,8 @@ class Tester:
                     'batch_token_types': batch_token_types,
                     'batch_start_mpos': batch_start_mpos,
                     'batch_epair_rels': batch_epair_rels,
-                    'num_entity_per_doc': num_entity_per_doc}    
+                    'num_entity_per_doc': num_entity_per_doc}
+
 
     def cal_f1(self, preds, labels, epsilon=1e-8):
         TP = (preds * labels).sum()
