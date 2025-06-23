@@ -89,7 +89,9 @@ def test(args, info, mode, inputs, tokenizer, model, if_final=False, rej_rate=0,
             
             _, batch_preds = model(batch_tasks, batch_inputs, to_evaluate=False, to_predict=True)
             batch_triplets, batch_relations, batch_first_predictions = feed_batch(info, batch_inputs, batch_preds, infer_round)
-            all_triplets += batch_triplets; all_relations.append(batch_relations); all_first_predictions.append(batch_first_predictions)
+            all_triplets += batch_triplets;
+            all_relations.append(batch_relations);
+            all_first_predictions.append(batch_first_predictions)
             
     all_relations, all_first_predictions = torch.cat(all_relations).bool(), torch.cat(all_first_predictions)
     

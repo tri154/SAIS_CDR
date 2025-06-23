@@ -9,11 +9,8 @@ if __name__ == '__main__':
 
     pre = Preprocessing(cfg)
     train_set, dev_set, test_set = pre.train_set, pre.dev_set, pre.test_set
-    model = Model(cfg).to(cfg.device)#TODO
-    # model = None 
-    tester = None #TODO
+    model = Model(cfg).to(cfg.device)
+    tester = Tester(cfg, dev_set=dev_set, test_set=test_set)
     trainer = Trainer(cfg, model, train_set=train_set, tester=tester)
     trainer.debug()
-
-    #TODO:
-    # do training stuffs here.
+    # trainer.train(cfg.num_epoches, cfg.batch_size)

@@ -2,8 +2,11 @@ import numpy as np
 import torch
 import torch.nn.utils.rnn as rnn
 import math
-from itertools import permutations
 import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
+from collections import defaultdict
+from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+
 
 class Trainer:
     def __init__(self, cfg, model, train_set=None, tester=None):
@@ -14,17 +17,35 @@ class Trainer:
 
         print()
         # TODO: optimizer
+        self.opt, self.sched = self.prepare_optimizer_scheduler()
 
         # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
         #             'doc_title': doc_title,
         #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.
         #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
-    def prepare_batch_train(self, batch_size):
-        train_set = self.train_set
-        num_batch = math.ceil(len(train_set) / batch_size)
+    def prepare_optimizer_scheduler(self, ):
+        grouped_params = defaultdict(list)
+        for name, param in self.model.named_parameters():
+            if 'transformer' in name:
+                grouped_params['pretrained_lr'].append(param)
+            else:
+                grouped_params['new_lr'].append(param)
+
+        grouped_lrs = [{'params': grouped_params[group], 'lr': lr} for group, lr in zip(['pretrained_lr', 'new_lr'], [self.cfg.pretrained_lr, self.cfg.new_lr])]
+        opt = AdamW(grouped_lrs)
+
+        num_updates = math.ceil(math.ceil(len(self.train_set) / self.cfg.batch_size) / self.cfg.update_freq) * self.cfg.num_epoch
+        num_warmups = int(num_updates * self.cfg.warmup_ratio)
+        sched = get_linear_schedule_with_warmup(opt,num_warmups, num_updates)
+
+        return opt, sched
+               
+    def prepare_batch(self, batch_size):
+        inputs = self.train_set
+        num_batch = math.ceil(len(inputs) / batch_size)
 
         for idx_batch in range(num_batch):
-            batch_inputs = train_set[idx_batch * batch_size:(idx_batch + 1) * batch_size]
+            batch_inputs = inputs[idx_batch * batch_size:(idx_batch + 1) * batch_size]
 
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
             batch_titles = []
@@ -79,20 +100,29 @@ class Trainer:
                     'num_entity_per_doc': num_entity_per_doc}
             
     def debug(self):
-        for idx_batch, batch_input in enumerate(self.prepare_batch_train(self.cfg.batch_size)):
-            result = self.model(batch_input, is_training=False)
-            print(result)
-            input("Stop")
+        # for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
+        #     self.model(batch_input, is_training=True)
+        #     input("Stop")
                 
+        self.tester.test(self.model, dataset='dev')
 
-    def one_epoch_train(self, batch_size):
+    def train_one_epoch(self, batch_size):
         self.model.train()
-        self.optimizer.zero_grad()
+        self.opt.zero_grad()
 
         np.random.shuffle(self.train_set)
 
-        for idx_batch, batch_input in enumerate(self.prepare_batch_train(batch_size)):
+        num_batch = math.ceil(len(self.train_set) / batch_size)
+
+        for idx_batch, batch_input in enumerate(self.prepare_batch(batch_size)):
             batch_loss = self.model(batch_input, is_training=True)
+            (batch_loss / self.cfg.update_freq).backward()
+
+            if idx_batch % self.cfg.update_freq == 0 or idx_batch == num_batch - 1:
+                clip_grad_norm_(self.model.parameters(), )
+                self.opt.step()
+                self.opt.zero_grad()
+                self.sched.step()
 
 
     def train(self, num_epoches, batch_size, train_set=None):
@@ -102,8 +132,8 @@ class Trainer:
         best_score, best_epoch = 0, 0
         for idx_epoch in range(num_epoches):
 
-            self.one_epoch_train(batch_size)
-            score = self.tester.test_dev(self.model)
+            self.train_one_epoch(batch_size)
+            score = self.tester.test(self.model, dataset='dev')
 
             if score >= best_score:
                 best_score, best_epoch = score, idx_epoch

@@ -276,6 +276,18 @@ def prepare_batch_train(info, inputs, batch_size):
 
         yield batch_inputs
 
+        # batch_inputs = {'batch_titles': batch_titles,
+        #            'batch_token_seqs': batch_token_seqs, 
+        #            'batch_token_masks': batch_token_masks,
+        #            'batch_token_types': batch_token_types,
+        #            'batch_sent_tids': batch_sent_tids,
+        #            'batch_num_sents_per_doc': batch_num_sents_per_doc,
+        #            'batch_epair_ids': batch_epair_ids,
+        #            'batch_epair_tids': batch_epair_tids,               
+        #            'batch_epair_masks': batch_epair_masks,
+        #            'batch_epair_relations': batch_epair_relations, 
+        #            'batch_epair_finegrained_evidences': None,
+        #            'batch_num_epairs_per_doc': batch_num_epairs_per_doc}
 
 def prepare_batch_test(info, inputs, batch_size, infer_round, preds=None):
     

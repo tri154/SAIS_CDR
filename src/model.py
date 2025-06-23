@@ -174,7 +174,4 @@ class Model(nn.Module):
         if is_training:
             return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
         else:
-            return self.loss.ATLOP_pred(batch_RE_reps)
-       
-
-        
+            return self.loss.ATLOP_pred(batch_RE_reps), batch_labels

@@ -18,6 +18,12 @@ def parse_args():
 
     parser.add_argument('--num_epoch', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--update_freq', type=int, default=1, help="Gradient accumulation.") 
+    parser.add_argument('--warmup_ratio', type=float, default=0.06, help="Warmup.")
+    parser.add_argument("--max_grad_norm", type=float, default=1.0)
+    parser.add_argument("--new_lr", type=float, default=1e-4)
+    parser.add_argument("--pretrained_lr", type=float, default=5e-5)
+
 
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--transformer', type=str, default='bert-base-cased')
