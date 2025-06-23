@@ -140,7 +140,7 @@ class Trainer:
 
             if f1 >= best_f1:
                 best_f1, best_epoch = f1, idx_epoch
-                torch.save(self.model.state_dict(), self.save_path)
+                torch.save(self.model.state_dict(), self.cfg.save_path)
 
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
         precision, recall, f1 = self.tester.test(self.model, dataset='test')
