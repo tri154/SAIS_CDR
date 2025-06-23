@@ -121,7 +121,7 @@ class Trainer:
             (batch_loss / self.cfg.update_freq).backward()
 
             if idx_batch % self.cfg.update_freq == 0 or idx_batch == num_batch - 1:
-                clip_grad_norm_(self.model.parameters(), )
+                clip_grad_norm_(self.model.parameters(), self.cfg.max_grad_norm)
                 self.opt.step()
                 self.opt.zero_grad()
                 self.sched.step()
