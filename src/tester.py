@@ -94,4 +94,4 @@ class Tester:
         all_labels = torch.cat(all_labels, dim=0).to(self.cfg.device)
 
         precision, recall, f1 = self.cal_f1(all_preds, all_labels)
-        print(precision, recall, f1)
+        return precision, recall, f1
