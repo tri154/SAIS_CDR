@@ -5,7 +5,8 @@ import math
 import torch.nn.functional as F
 from torch.nn.utils import clip_grad_norm_
 from collections import defaultdict
-from transformers.optimization import AdamW, get_linear_schedule_with_warmup
+from transformers.optimization import get_linear_schedule_with_warmup
+from torch.optim import AdamW
 from tqdm import tqdm
 
 
