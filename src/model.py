@@ -23,8 +23,8 @@ class Transformer(nn.Module):
         self.max_num_tokens = 512
         
         self.start_token_len, self.end_token_len = 1, 1
-        self.start_token_ids = torch.Tensor([self.transformer.config.cls_token_id]).to(cfg.device)
-        self.end_token_ids = torch.Tensor([self.transformer.config.sep_token_id]).to(cfg.device)
+        self.start_token_ids = torch.Tensor([self.tokenizer.cls_token_id]).to(cfg.device)
+        self.end_token_ids = torch.Tensor([self.tokenizer.sep_token_id]).to(cfg.device)
         
         
     def forward(self, batch_token_seqs, batch_token_masks, batch_token_types):
