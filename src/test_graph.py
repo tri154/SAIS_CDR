@@ -41,4 +41,5 @@ if __name__ == "__main__":
     model = RGCN(128, 128, 128, 3)
 
     out = model(x, edge_index, edge_type)
+    print(out.shape)
     print(out)
