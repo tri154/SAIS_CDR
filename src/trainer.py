@@ -102,9 +102,9 @@ class Trainer:
                     'num_entity_per_doc': num_entity_per_doc}
             
     def debug(self):
-        # for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
-        #     self.model(batch_input, is_training=True)
-        #     input("Stop")
+        for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
+            self.model(batch_input, is_training=True)
+            input("Stop")
                 
         self.tester.test(self.model, dataset='dev')
 
@@ -144,3 +144,4 @@ class Trainer:
 
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
         precision, recall, f1 = self.tester.test(self.model, dataset='test')
+        print(f"Test result: P={precision}, R={recall}, F1={f1}")
