@@ -68,6 +68,7 @@ class Preprocessing:
 
         doc_tokens = []
         doc_start_mpos = defaultdict(set)
+        doc_mpos2sentid = dict()
         doc_sent_pos = dict()
         for sid, sent in enumerate(doc['sents']): #each sentence
             sent_tokens = []
@@ -75,8 +76,11 @@ class Preprocessing:
                 tokens = self.tokenizer.tokenize(word)
                 if (sid, wid) in start_mpos:
                     tokens = [self.cfg.marker_entity] + tokens
+                    mpos = len(doc_tokens) + len(sent_tokens) + 1
+                    doc_mpos2sentid[mpos] = sid
                     for eid in sid_pos2eid[(sid, wid)]:
-                        doc_start_mpos[eid].add(len(doc_tokens) + len(sent_tokens) + 1)
+                        # doc_start_mpos[eid].add(len(doc_tokens) + len(sent_tokens) + 1)
+                        doc_start_mpos[eid].add(mpos)
                 if (sid, wid) in end_mpos:
                     tokens = tokens + [self.cfg.marker_entity]
                 sent_tokens += tokens
@@ -96,7 +100,8 @@ class Preprocessing:
                     'doc_title': doc_title,
                     'doc_start_mpos': doc_start_mpos,
                     'doc_sent_pos': doc_sent_pos,
-                    'doc_epair_rels': doc_epair_rels}
+                    'doc_epair_rels': doc_epair_rels,
+                    'doc_mpos2sentid': doc_mpos2sentid}
 
             
         return doc_data, is_error

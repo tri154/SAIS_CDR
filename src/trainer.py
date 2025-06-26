@@ -53,13 +53,15 @@ class Trainer:
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
             batch_titles = []
             batch_start_mpos = []
-            batch_epair_rels = list()
+            batch_epair_rels = []
+            batch_mpos2sentid = []
 
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
                 batch_token_seqs.append(doc_input['doc_tokens'])
                 doc_start_mpos = doc_input['doc_start_mpos']
                 batch_start_mpos.append(doc_start_mpos)
+                batch_mpos2sentid.append(doc_input['doc_mpos2sentid'])
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -83,24 +85,29 @@ class Trainer:
             # num_entity_per_doc = torch.tensor([len(doc_start_mpos.values()) for doc_start_mpos in batch_start_mpos]) # Keep it on CPU.
             # batch_start_mpos = torch.stack([F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()]).to(self.cfg.device)
 
+            num_mention_per_doc = [0 for _ in range(len(batch_inputs))]
             temp = [] 
             num_entity_per_doc = []
-            for doc_start_mpos in batch_start_mpos:
+            for did, doc_start_mpos in enumerate(batch_start_mpos):
                 num_entity_per_doc.append(len(doc_start_mpos.values()))
                 for eid in sorted(doc_start_mpos):
                     mention_pos = doc_start_mpos[eid]
+                    num_mention_per_doc[did] += len(mention_pos)
                     temp.append(F.pad(torch.tensor(sorted(list(mention_pos))), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1)) # sorted mentions list.
 
             batch_start_mpos = torch.stack(temp) #expecting: [sum entity, max_mention]
             num_entity_per_doc = torch.tensor(num_entity_per_doc) # keep in cpu.
+            num_mention_per_doc = torch.tensor(num_mention_per_doc) # keep in cpu.
 
             yield {'batch_titles': np.array(batch_titles),
                     'batch_token_seqs': batch_token_seqs,
                     'batch_token_masks': batch_token_masks,
                     'batch_token_types': batch_token_types,
                     'batch_start_mpos': batch_start_mpos,
+                    'batch_mpos2sentid': batch_mpos2sentid,
                     'batch_epair_rels': batch_epair_rels,
-                    'num_entity_per_doc': num_entity_per_doc}
+                    'num_entity_per_doc': num_entity_per_doc,
+                    'num_mention_per_doc': num_mention_per_doc}
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):

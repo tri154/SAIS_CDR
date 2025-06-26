@@ -165,7 +165,13 @@ class Model(nn.Module):
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
-        return batch_entity_embs 
+        return batch_entity_embs
+        
+    def compute_mentions_embs(self, batch_token_embs, batch_start_mpos, num_mention_per_doc):
+        batch_did = torch.arange(len(batch_token_embs)).repeat_interleave(num_mention_per_doc)
+        batch_mentions_pos = batch_start_mpos[batch_start_mpos != -1].flatten()
+        return batch_token_embs[batch_did, batch_mentions_pos]
+        # out: [all_mentions, 768], order: first_doc, first_mention
         
 
     def forward(self, batch_input, is_training=False):
@@ -174,46 +180,88 @@ class Model(nn.Module):
         batch_token_types = batch_input['batch_token_types']
         batch_start_mpos = batch_input['batch_start_mpos']
         batch_epair_rels = batch_input['batch_epair_rels']
+        batch_mpos2sentid = batch_input['batch_mpos2sentid']
         num_entity_per_doc = batch_input['num_entity_per_doc']
+        num_mention_per_doc = batch_input['num_mention_per_doc']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
+        # batch_mention_embs = self.compute_mentions_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
+
+
+        batch_did = torch.arange(len(batch_token_embs)).repeat_interleave(num_mention_per_doc)
+        index = batch_start_mpos != -1
+        num_mention_per_entity = torch.count_nonzero(index, dim=-1)
+        # print(num_mention_per_entity)
+        # print(num_mention_per_doc)
+        # print(num_entity_per_doc)
+        batch_mentions_pos = batch_start_mpos[index]
+        batch_mention_embs = batch_token_embs[batch_did, batch_mentions_pos]
 
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
-
-        head_entity_pairs = list()
-        tail_entity_pairs = list()
-        batch_labels = list()
-
+        to_eid = list()
         for did in range(len(start_entity_pos) - 1):
-            doc_epair_rels = batch_epair_rels[did]
-            offset = int(start_entity_pos[did])
-            for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
-                pair_labels = torch.zeros(self.cfg.num_rel)
-                for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
-                    pair_labels[self.cfg.data_rel2id[r]] = 1
-                batch_labels.append(pair_labels)
-                head_entity_pairs.append(eid_h)
-                tail_entity_pairs.append(eid_t)
+            start = start_entity_pos[did]
+            end = start_entity_pos[did + 1]
+            num_entity = end - start
+            temp = num_mention_per_entity[start_entity_pos[did]: start_entity_pos[did + 1]]
+            to_eid.append(torch.arange(num_entity).repeat_interleave(temp))
+            # print(to_eid[-1])
+        to_eid = torch.cat(to_eid)
+
+        node_reps = torch.cat([batch_entity_embs, batch_mention_embs], dim=0)
+        types_to_num = torch.tensor([len(batch_entity_embs), len(batch_mention_embs), 0]) # NOTE: modify if add sentence.
+        node_types = torch.arange(3).repeat_interleave(types_to_num)
+
+        edges = list()
+        edges_type = list()
+        
+        mention_index = torch.arange(types_to_num[1]) + types_to_num[0]
+
+        offsets = start_entity_pos[:-1].repeat_interleave(num_mention_per_doc)
+        entity_index = to_eid + offsets
+
+        edges.append(torch.stack([mention_index, entity_index]))
+        print(edges[-1].shape)
+        edges_type.append(torch.tensor([0]).repeat(edges[-1].shape[-1]))
+        print(edges_type[-1].shape)
 
 
-        head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
-        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
-        batch_labels = torch.stack(batch_labels).to(self.cfg.device)
 
-        head_entity_embs = batch_entity_embs[head_entity_pairs]
-        tail_entity_embs = batch_entity_embs[tail_entity_pairs]
+        
+        # head_entity_pairs = list()
+        # tail_entity_pairs = list()
+        # batch_labels = list()
 
-        head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
-        tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
+        # for did in range(len(start_entity_pos) - 1):
+        #     doc_epair_rels = batch_epair_rels[did]
+        #     offset = int(start_entity_pos[did])
+        #     for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
+        #         pair_labels = torch.zeros(self.cfg.num_rel)
+        #         for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
+        #             pair_labels[self.cfg.data_rel2id[r]] = 1
+        #         batch_labels.append(pair_labels)
+        #         head_entity_pairs.append(eid_h)
+        #         tail_entity_pairs.append(eid_t)
 
-        head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
-        batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
 
-        if is_training:
-            return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
-        else:
-            return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
+        # head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
+        # tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
+        # batch_labels = torch.stack(batch_labels).to(self.cfg.device)
+
+        # head_entity_embs = batch_entity_embs[head_entity_pairs]
+        # tail_entity_embs = batch_entity_embs[tail_entity_pairs]
+
+        # head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
+        # tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
+
+        # head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        # tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        # batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
+        # batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
+
+        # if is_training:
+        #     return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
+        # else:
+        #     return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
