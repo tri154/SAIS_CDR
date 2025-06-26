@@ -89,7 +89,7 @@ class Trainer:
                 num_entity_per_doc.append(len(doc_start_mpos.values()))
                 for eid in sorted(doc_start_mpos):
                     mention_pos = doc_start_mpos[eid]
-                    temp.append(F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1))
+                    temp.append(F.pad(torch.tensor(sorted(list(mention_pos))), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1)) # sorted mentions list.
 
             batch_start_mpos = torch.stack(temp) #expecting: [sum entity, max_mention]
             num_entity_per_doc = torch.tensor(num_entity_per_doc) # keep in cpu.

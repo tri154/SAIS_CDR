@@ -34,24 +34,36 @@ class Preprocessing:
 
         for mode, corpus in self.cfg.file_corpuses.items():
             corpus = json.load(open(corpus, 'r'))
-            corpus_data = self.__prepare_corpus(corpus) #a list of dict
+            corpus_data, corpus_error = self.__prepare_corpus(corpus) #a list of dict
+            # print(len(corpus_error))
+            # input("Error")
             pk.dump(corpus_data, open(self.cfg.files_processed[mode], 'wb'), -1)
 
     def __prepare_corpus(self, corpus):
+        corpus_error = list()
         corpus_data = [] # list of dict
         for did, doc in enumerate(corpus): #each doc
-            doc_data = self.__prepare_doc(doc)
+            doc_data, is_error = self.__prepare_doc(doc)
+            if is_error:
+                corpus_error.append(doc_data['doc_title'])
             corpus_data.append(doc_data)
-        return corpus_data
+        return corpus_data, corpus_error
 
 
     def __prepare_doc(self, doc):
         start_mpos, end_mpos = set(), set()
         sid_pos2eid = defaultdict(set)
+        is_error = False
         for eid, entity in enumerate(doc['vertexSet']):
             for mid, mention in enumerate(entity):
                 start_mpos.add((mention['sent_id'], mention['pos'][0]))
                 sid_pos2eid[(mention['sent_id'], mention['pos'][0])].add(eid)
+                if len(sid_pos2eid[(mention['sent_id'], mention['pos'][0])]) == 2:
+                    # print(mention['sent_id'], mention['pos'][0])
+                    # print(doc['title'])
+                    # print(sid_pos2eid[(mention['sent_id'], mention['pos'][0])])
+                    # input("Error")
+                    is_error = True
                 end_mpos.add((mention['sent_id'], mention['pos'][1] - 1))
 
         doc_tokens = []
@@ -87,5 +99,4 @@ class Preprocessing:
                     'doc_epair_rels': doc_epair_rels}
 
             
-        return doc_data
-
+        return doc_data, is_error
