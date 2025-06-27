@@ -230,23 +230,40 @@ class Model(nn.Module):
         entity_index = to_eid + offsets
 
         edges.append(torch.stack([mention_index, entity_index]))
-        # print(edges[-1].shape)
         edges_type.append(torch.tensor([0]).repeat(edges[-1].shape[-1]))
-        # print(edges_type[-1].shape)
 
 
         #_______
         
-        offsets = torch.cat([torch.tensor([0]), num_sent_per_doc], dim=-1).cumsum(dim=-1)[:-1]
-        offsets = offsets.repeat_interleave(num_mention_per_doc)
-        sentence_index = batch_mpos2sentid[:, 1] + offsets + len(batch_entity_embs) + len(batch_mention_embs)
+        print(len(batch_entity_embs) + len(batch_mention_embs))
+        sent_cumsum = torch.cat([torch.tensor([0]), num_sent_per_doc], dim=-1).cumsum(dim=-1) + len(batch_entity_embs) + len(batch_mention_embs)
+        offsets = sent_cumsum[:-1].repeat_interleave(num_mention_per_doc)
+        sentence_index = batch_mpos2sentid[:, 1] + offsets
 
         edges.append(torch.stack([mention_index, sentence_index]))
         edges_type.append(torch.tensor([1]).repeat(edges[-1].shape[-1]))
-        print(edges[-1].shape)
-        print(edges_type[-1])
-        
 
+        head_sent = list()
+        tail_sent = list()
+        for id in range(len(sent_cumsum) - 1):
+            head_sent.append(torch.arange(sent_cumsum[id], sent_cumsum[id + 1] - 1))
+            tail_sent.append(torch.arange(sent_cumsum[id] + 1, sent_cumsum[id + 1]))
+
+        head_sent = torch.cat(head_sent, dim=-1)
+        tail_sent = torch.cat(tail_sent, dim=-1)
+
+        edges.append(torch.stack([head_sent, tail_sent]))
+        edges_type.append(torch.tensor([2]).repeat(edges[-1].shape[-1]))
+
+        edges = torch.cat(edges, dim=1)
+        edges_type = torch.cat(edges_type, dim=0)
+
+        print(edges.shape)
+        print(edges_type.shape)
+
+
+        node_reps = self.RGCN(node_reps, node_types, edges, edges_type)
+        print(node_reps.shape)
         
         input("TEST")
 
