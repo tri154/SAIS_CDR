@@ -96,6 +96,15 @@ class Preprocessing:
             h, t, r = rel['h'], rel['t'], rel['r']
             doc_epair_rels[(h, t)].append(r)
 
+        temp = list()
+
+        for eid in sorted(doc_start_mpos.keys()):
+            for mention_pos in sorted(doc_start_mpos[eid]):
+                temp.append((mention_pos, doc_mpos2sentid[mention_pos]))
+
+        doc_mpos2sentid = torch.tensor(temp)
+
+
         doc_data = {'doc_tokens': doc_tokens,
                     'doc_title': doc_title,
                     'doc_start_mpos': doc_start_mpos,

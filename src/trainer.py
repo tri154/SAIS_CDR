@@ -55,6 +55,8 @@ class Trainer:
             batch_start_mpos = []
             batch_epair_rels = []
             batch_mpos2sentid = []
+            batch_sent_pos = []
+            num_sent_per_doc = []
 
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
@@ -62,6 +64,8 @@ class Trainer:
                 doc_start_mpos = doc_input['doc_start_mpos']
                 batch_start_mpos.append(doc_start_mpos)
                 batch_mpos2sentid.append(doc_input['doc_mpos2sentid'])
+                batch_sent_pos.append(torch.tensor([doc_input['doc_sent_pos'][key] for key in sorted(doc_input['doc_sent_pos'])]))
+                num_sent_per_doc.append(len(doc_input['doc_sent_pos']))
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -77,8 +81,6 @@ class Trainer:
             batch_token_seqs = rnn.pad_sequence(batch_token_seqs, batch_first=True, padding_value=0).long().to(self.cfg.device)
             batch_token_masks = rnn.pad_sequence(batch_token_masks, batch_first=True, padding_value=0).float().to(self.cfg.device)
             batch_token_types = rnn.pad_sequence(batch_token_types, batch_first=True, padding_value=0).long().to(self.cfg.device)
-
-
 
             max_m_n_p_b = max([len(mention_pos) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()])  # max mention number in batch.
 
@@ -99,6 +101,12 @@ class Trainer:
             num_entity_per_doc = torch.tensor(num_entity_per_doc) # keep in cpu.
             num_mention_per_doc = torch.tensor(num_mention_per_doc) # keep in cpu.
 
+
+            batch_sent_pos = torch.cat(batch_sent_pos)
+            num_sent_per_doc = torch.tensor(num_sent_per_doc)
+
+
+            batch_mpos2sentid = torch.cat(batch_mpos2sentid, dim=0)
             yield {'batch_titles': np.array(batch_titles),
                     'batch_token_seqs': batch_token_seqs,
                     'batch_token_masks': batch_token_masks,
@@ -107,7 +115,9 @@ class Trainer:
                     'batch_mpos2sentid': batch_mpos2sentid,
                     'batch_epair_rels': batch_epair_rels,
                     'num_entity_per_doc': num_entity_per_doc,
-                    'num_mention_per_doc': num_mention_per_doc}
+                    'num_mention_per_doc': num_mention_per_doc,
+                    'batch_sent_pos': batch_sent_pos,
+                    'num_sent_per_doc': num_sent_per_doc}
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):

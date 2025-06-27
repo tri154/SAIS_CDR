@@ -172,7 +172,17 @@ class Model(nn.Module):
         batch_mentions_pos = batch_start_mpos[batch_start_mpos != -1].flatten()
         return batch_token_embs[batch_did, batch_mentions_pos]
         # out: [all_mentions, 768], order: first_doc, first_mention
-        
+
+    def compute_sent_embs(self, batch_token_embs, num_sent_per_doc, batch_sent_pos):
+        batch_sent_embs = list()
+
+        num_sent_cumsum = torch.cumsum(num_sent_per_doc, dim=0)
+
+        for sid, sent in enumerate(batch_sent_pos):
+            did = (sid < num_sent_cumsum).nonzero()[0].item()
+            batch_sent_embs.append(torch.mean(batch_token_embs[did, sent[0]:sent[1]], dim=0))
+            
+        return torch.stack(batch_sent_embs)
 
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
@@ -183,22 +193,20 @@ class Model(nn.Module):
         batch_mpos2sentid = batch_input['batch_mpos2sentid']
         num_entity_per_doc = batch_input['num_entity_per_doc']
         num_mention_per_doc = batch_input['num_mention_per_doc']
+        batch_sent_pos = batch_input['batch_sent_pos']
+        num_sent_per_doc = batch_input['num_sent_per_doc']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
         # batch_mention_embs = self.compute_mentions_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
-
+        batch_sent_embs = self.compute_sent_embs(batch_token_embs, num_sent_per_doc, batch_sent_pos)
 
         batch_did = torch.arange(len(batch_token_embs)).repeat_interleave(num_mention_per_doc)
         index = batch_start_mpos != -1
-        num_mention_per_entity = torch.count_nonzero(index, dim=-1)
-        # print(num_mention_per_entity)
-        # print(num_mention_per_doc)
-        # print(num_entity_per_doc)
         batch_mentions_pos = batch_start_mpos[index]
         batch_mention_embs = batch_token_embs[batch_did, batch_mentions_pos]
 
-
+        num_mention_per_entity = torch.count_nonzero(index, dim=-1)
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
         to_eid = list()
         for did in range(len(start_entity_pos) - 1):
@@ -207,11 +215,10 @@ class Model(nn.Module):
             num_entity = end - start
             temp = num_mention_per_entity[start_entity_pos[did]: start_entity_pos[did + 1]]
             to_eid.append(torch.arange(num_entity).repeat_interleave(temp))
-            # print(to_eid[-1])
         to_eid = torch.cat(to_eid)
 
-        node_reps = torch.cat([batch_entity_embs, batch_mention_embs], dim=0)
-        types_to_num = torch.tensor([len(batch_entity_embs), len(batch_mention_embs), 0]) # NOTE: modify if add sentence.
+        node_reps = torch.cat([batch_entity_embs, batch_mention_embs, batch_sent_embs], dim=0)
+        types_to_num = torch.tensor([len(batch_entity_embs), len(batch_mention_embs), len(batch_sent_embs)])
         node_types = torch.arange(3).repeat_interleave(types_to_num)
 
         edges = list()
@@ -223,13 +230,20 @@ class Model(nn.Module):
         entity_index = to_eid + offsets
 
         edges.append(torch.stack([mention_index, entity_index]))
-        print(edges[-1].shape)
+        # print(edges[-1].shape)
         edges_type.append(torch.tensor([0]).repeat(edges[-1].shape[-1]))
-        print(edges_type[-1].shape)
+        # print(edges_type[-1].shape)
 
 
+        #_______
+        
+        print(batch_mpos2sentid[:, 1])
+        print(batch_mentions_pos)
 
         
+        input("TEST")
+
+        #________
         # head_entity_pairs = list()
         # tail_entity_pairs = list()
         # batch_labels = list()
