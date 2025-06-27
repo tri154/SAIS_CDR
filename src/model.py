@@ -135,7 +135,7 @@ class RGCN(nn.Module):
         for conv in self.convs[:-1]:
             x = self.activation(conv(x, edge_index, edge_type))
         x = self.convs[-1](x, edge_index, edge_type) 
-        return x
+        return self.activation(x)
 
     
 class Model(nn.Module):
