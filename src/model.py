@@ -256,42 +256,41 @@ class Model(nn.Module):
         edges_type = torch.cat(edges_type, dim=0).to(self.cfg.device)
 
         node_reps = self.RGCN(node_reps, node_types, edges, edges_type)
-        print(node_reps.shape)
-        
-        input("TEST")
+        batch_entity_embs = node_reps[:len(batch_entity_embs)]
 
-        # head_entity_pairs = list()
-        # tail_entity_pairs = list()
-        # batch_labels = list()
+        # _______
+        head_entity_pairs = list()
+        tail_entity_pairs = list()
+        batch_labels = list()
 
-        # for did in range(len(start_entity_pos) - 1):
-        #     doc_epair_rels = batch_epair_rels[did]
-        #     offset = int(start_entity_pos[did])
-        #     for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
-        #         pair_labels = torch.zeros(self.cfg.num_rel)
-        #         for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
-        #             pair_labels[self.cfg.data_rel2id[r]] = 1
-        #         batch_labels.append(pair_labels)
-        #         head_entity_pairs.append(eid_h)
-        #         tail_entity_pairs.append(eid_t)
+        for did in range(len(start_entity_pos) - 1):
+            doc_epair_rels = batch_epair_rels[did]
+            offset = int(start_entity_pos[did])
+            for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
+                pair_labels = torch.zeros(self.cfg.num_rel)
+                for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
+                    pair_labels[self.cfg.data_rel2id[r]] = 1
+                batch_labels.append(pair_labels)
+                head_entity_pairs.append(eid_h)
+                tail_entity_pairs.append(eid_t)
 
 
-        # head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
-        # tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
-        # batch_labels = torch.stack(batch_labels).to(self.cfg.device)
+        head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
+        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
+        batch_labels = torch.stack(batch_labels).to(self.cfg.device)
 
-        # head_entity_embs = batch_entity_embs[head_entity_pairs]
-        # tail_entity_embs = batch_entity_embs[tail_entity_pairs]
+        head_entity_embs = batch_entity_embs[head_entity_pairs]
+        tail_entity_embs = batch_entity_embs[tail_entity_pairs]
 
-        # head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
-        # tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
+        head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
+        tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
 
-        # head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        # tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        # batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
-        # batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
+        head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
+        batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
 
-        # if is_training:
-        #     return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
-        # else:
-        #     return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
+        if is_training:
+            return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
+        else:
+            return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
