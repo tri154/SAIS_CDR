@@ -82,6 +82,8 @@ class DownLayer(nn.Module):
         )
 
     def forward(self, x):
+        if x.size(-1) <= 1 or x.size(-2) <= 1:
+            return self.maxpool_conv[1](x)
         x = self.maxpool_conv(x)
         return x
 
