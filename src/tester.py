@@ -163,8 +163,6 @@ class Tester:
                 batch_preds, batch_labels = model(batch_inputs, is_training=False)
                 all_preds.append(batch_preds)
                 all_labels.append(batch_labels)
-                if idx_batch == 2:
-                    break
 
         all_preds = torch.cat(all_preds, dim=0).to(self.cfg.device)
         all_labels = torch.cat(all_labels, dim=0).to(self.cfg.device)
