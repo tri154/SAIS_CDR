@@ -146,7 +146,7 @@ class Model(nn.Module):
         self.transformer = Transformer(cfg)
         if cfg.transformer == 'bert-base-cased':
             self.hidden_dim = 768 #NOTE: change if transformer changes.
-        self.RGCN = RGCN(self.hidden_dim, self.hidden_dim, self.hidden_dim, 3, 3, self.cfg.type_dim)
+        self.RGCN = RGCN(self.hidden_dim, self.hidden_dim, self.hidden_dim, 3, 3, self.cfg.type_dim).to(self.cfg.device)
 
         self.loss = Loss(cfg)
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
@@ -182,7 +182,7 @@ class Model(nn.Module):
             did = (sid < num_sent_cumsum).nonzero()[0].item()
             batch_sent_embs.append(torch.mean(batch_token_embs[did, sent[0]:sent[1]], dim=0))
             
-        return torch.stack(batch_sent_embs)
+        return torch.stack(batch_sent_embs).to(self.cfg.device)
 
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
@@ -217,9 +217,9 @@ class Model(nn.Module):
             to_eid.append(torch.arange(num_entity).repeat_interleave(temp))
         to_eid = torch.cat(to_eid)
 
-        node_reps = torch.cat([batch_entity_embs, batch_mention_embs, batch_sent_embs], dim=0)
+        node_reps = torch.cat([batch_entity_embs, batch_mention_embs, batch_sent_embs], dim=0).to(self.cfg.device)
         types_to_num = torch.tensor([len(batch_entity_embs), len(batch_mention_embs), len(batch_sent_embs)])
-        node_types = torch.arange(3).repeat_interleave(types_to_num)
+        node_types = torch.arange(3).repeat_interleave(types_to_num).to(self.cfg.device)
 
         edges = list()
         edges_type = list()
@@ -233,9 +233,6 @@ class Model(nn.Module):
         edges_type.append(torch.tensor([0]).repeat(edges[-1].shape[-1]))
 
 
-        #_______
-        
-        print(len(batch_entity_embs) + len(batch_mention_embs))
         sent_cumsum = torch.cat([torch.tensor([0]), num_sent_per_doc], dim=-1).cumsum(dim=-1) + len(batch_entity_embs) + len(batch_mention_embs)
         offsets = sent_cumsum[:-1].repeat_interleave(num_mention_per_doc)
         sentence_index = batch_mpos2sentid[:, 1] + offsets
@@ -255,19 +252,14 @@ class Model(nn.Module):
         edges.append(torch.stack([head_sent, tail_sent]))
         edges_type.append(torch.tensor([2]).repeat(edges[-1].shape[-1]))
 
-        edges = torch.cat(edges, dim=1)
-        edges_type = torch.cat(edges_type, dim=0)
-
-        print(edges.shape)
-        print(edges_type.shape)
-
+        edges = torch.cat(edges, dim=1).to(self.cfg.device)
+        edges_type = torch.cat(edges_type, dim=0).to(self.cfg.device)
 
         node_reps = self.RGCN(node_reps, node_types, edges, edges_type)
         print(node_reps.shape)
         
         input("TEST")
 
-        #________
         # head_entity_pairs = list()
         # tail_entity_pairs = list()
         # batch_labels = list()
