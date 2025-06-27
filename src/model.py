@@ -6,7 +6,8 @@ from transformers import AutoConfig, AutoModel, AutoTokenizer
 from itertools import permutations
 from loss import Loss
 from torch_geometric.nn import RGCNConv
-
+from attentionUnet import AttentionUNet
+from similarity import Similarity
 
 class Transformer(nn.Module):
     
@@ -147,6 +148,8 @@ class Model(nn.Module):
         if cfg.transformer == 'bert-base-cased':
             self.hidden_dim = 768 #NOTE: change if transformer changes.
         self.RGCN = RGCN(self.hidden_dim, self.hidden_dim, self.hidden_dim, 3, 3, self.cfg.type_dim).to(self.cfg.device)
+        self.unet = AttentionUNet(3, 256, down_channel=256)
+        self.similarity = Similarity(self.hidden_dim)
 
         self.loss = Loss(cfg)
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
@@ -257,40 +260,59 @@ class Model(nn.Module):
 
         node_reps = self.RGCN(node_reps, node_types, edges, edges_type)
         batch_entity_embs = node_reps[:len(batch_entity_embs)]
+       
+        batch_entity_embs = torch.split(batch_entity_embs, num_entity_per_doc.tolist())
+
+        u_inputs = list()
+        for doc_entity_embs in batch_entity_embs:
+            out = self.similarity(doc_entity_embs)
+            u_inputs.append(out)
+
+        u_outs = list()
+        for u_input in u_inputs:
+            temp = u_input.unsqueeze(0)
+            u_outs.append(self.unet(temp))
+            print(u_outs[-1].shape)
+# torch.Size([1, 6, 6, 256])
+# torch.Size([1, 9, 9, 256])
+# torch.Size([1, 6, 6, 256])
+# torch.Size([1, 5, 5, 256])
+
 
         # _______
-        head_entity_pairs = list()
-        tail_entity_pairs = list()
-        batch_labels = list()
+        # head_entity_pairs = list()
+        # tail_entity_pairs = list()
+        # batch_labels = list()
 
-        for did in range(len(start_entity_pos) - 1):
-            doc_epair_rels = batch_epair_rels[did]
-            offset = int(start_entity_pos[did])
-            for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
-                pair_labels = torch.zeros(self.cfg.num_rel)
-                for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
-                    pair_labels[self.cfg.data_rel2id[r]] = 1
-                batch_labels.append(pair_labels)
-                head_entity_pairs.append(eid_h)
-                tail_entity_pairs.append(eid_t)
+        # for did in range(len(start_entity_pos) - 1):
+        #     doc_epair_rels = batch_epair_rels[did]
+        #     offset = int(start_entity_pos[did])
+        #     for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
+        #         pair_labels = torch.zeros(self.cfg.num_rel)
+        #         for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
+        #             pair_labels[self.cfg.data_rel2id[r]] = 1
+        #         batch_labels.append(pair_labels)
+        #         head_entity_pairs.append(eid_h)
+        #         tail_entity_pairs.append(eid_t)
 
 
-        head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
-        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
-        batch_labels = torch.stack(batch_labels).to(self.cfg.device)
+        # head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
+        # tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
+        # batch_labels = torch.stack(batch_labels).to(self.cfg.device)
 
-        head_entity_embs = batch_entity_embs[head_entity_pairs]
-        tail_entity_embs = batch_entity_embs[tail_entity_pairs]
+        # head_entity_embs = batch_entity_embs[head_entity_pairs]
+        # tail_entity_embs = batch_entity_embs[tail_entity_pairs]
 
-        head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
-        tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
 
-        head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
-        batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
+        # head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
+        # tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
 
-        if is_training:
-            return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
-        else:
-            return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
+        # head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        # tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
+        # batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
+        # batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
+
+        # if is_training:
+        #     return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
+        # else:
+        #     return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
