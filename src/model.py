@@ -237,8 +237,15 @@ class Model(nn.Module):
 
         #_______
         
-        print(batch_mpos2sentid[:, 1])
-        print(batch_mentions_pos)
+        offsets = torch.cat([torch.tensor([0]), num_sent_per_doc], dim=-1).cumsum(dim=-1)[:-1]
+        offsets = offsets.repeat_interleave(num_mention_per_doc)
+        sentence_index = batch_mpos2sentid[:, 1] + offsets + len(batch_entity_embs) + len(batch_mention_embs)
+
+        edges.append(torch.stack([mention_index, sentence_index]))
+        edges_type.append(torch.tensor([1]).repeat(edges[-1].shape[-1]))
+        print(edges[-1].shape)
+        print(edges_type[-1])
+        
 
         
         input("TEST")
