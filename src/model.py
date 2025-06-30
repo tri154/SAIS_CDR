@@ -316,6 +316,7 @@ class Model(nn.Module):
         tail_entity_embs = torch.cat([batch_entity_embs[tail_entity_pairs], h_t], dim=-1)
 
 
+
         head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
         tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
 
