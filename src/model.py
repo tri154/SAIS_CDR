@@ -8,6 +8,7 @@ from loss import Loss
 
 
 class Transformer(nn.Module):
+    # TODO: need to rewrite logic.
     
     def __init__(self, cfg):
         super(Transformer, self).__init__()
@@ -123,7 +124,7 @@ class Model(nn.Module):
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
-        return batch_entity_embs 
+        return batch_entity_embs
         
 
     def forward(self, batch_input, is_training=False):
@@ -137,24 +138,23 @@ class Model(nn.Module):
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
 
-
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
 
         head_entity_pairs = list()
         tail_entity_pairs = list()
         batch_labels = list()
 
-        for did in range(len(start_entity_pos) - 1):
+        for did in range(self.cfg.batch_size):
             doc_epair_rels = batch_epair_rels[did]
             offset = int(start_entity_pos[did])
-            for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
-                pair_labels = torch.zeros(self.cfg.num_rel)
-                for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
-                    pair_labels[self.cfg.data_rel2id[r]] = 1
-                batch_labels.append(pair_labels)
-                head_entity_pairs.append(eid_h)
-                tail_entity_pairs.append(eid_t)
-
+            for e_h, e_t in doc_epair_rels:
+                print(e_h, e_t)
+                head_entity_pairs.append(e_h + offset)
+                tail_entity_pairs.append(e_t + offset)
+                pair_label = torch.zeros(self.cfg.num_rel)
+                for r in doc_epair_rels[(e_h, e_t)]:
+                    pair_label[self.cfg.data_rel2id[r]] = 1
+                batch_labels.append(pair_label)
 
         head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
         tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)

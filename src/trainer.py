@@ -87,7 +87,7 @@ class Trainer:
             num_entity_per_doc = []
             for doc_start_mpos in batch_start_mpos:
                 num_entity_per_doc.append(len(doc_start_mpos.values()))
-                for eid in sorted(doc_start_mpos):
+                for eid in sorted(doc_start_mpos): # Keep entity order.
                     mention_pos = doc_start_mpos[eid]
                     temp.append(F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1))
 
@@ -104,7 +104,7 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
-            self.model(batch_input, is_training=True)
+            loss = self.model(batch_input, is_training=False)
             input("Stop")
                 
         self.tester.test(self.model, dataset='dev')

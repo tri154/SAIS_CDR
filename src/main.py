@@ -13,3 +13,4 @@ if __name__ == '__main__':
     tester = Tester(cfg, dev_set=dev_set, test_set=test_set)
     trainer = Trainer(cfg, model, train_set=train_set, tester=tester)
     trainer.train(cfg.num_epoch, cfg.batch_size)
+    # trainer.debug()
