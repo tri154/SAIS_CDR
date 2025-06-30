@@ -1,1 +1,1 @@
-python main.py --dataset cdr --num_epoch 3
+python main.py --dataset cdr --num_epoch 30

@@ -148,7 +148,6 @@ class Model(nn.Module):
             doc_epair_rels = batch_epair_rels[did]
             offset = int(start_entity_pos[did])
             for e_h, e_t in doc_epair_rels:
-                print(e_h, e_t)
                 head_entity_pairs.append(e_h + offset)
                 tail_entity_pairs.append(e_t + offset)
                 pair_label = torch.zeros(self.cfg.num_rel)
