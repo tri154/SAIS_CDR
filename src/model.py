@@ -280,18 +280,32 @@ class Model(nn.Module):
         h_t = list()
         batch_labels = list()
 
-        for did in range(len(start_entity_pos) - 1):
+        #_______
+
+        for did in range(self.cfg.batch_size):
             doc_epair_rels = batch_epair_rels[did]
             offset = int(start_entity_pos[did])
-            for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
-                h_t.append(u_outs[did][eid_h - offset, eid_t - offset])
-                pair_labels = torch.zeros(self.cfg.num_rel)
-                for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
-                    pair_labels[self.cfg.data_rel2id[r]] = 1
-                batch_labels.append(pair_labels)
-                head_entity_pairs.append(eid_h)
-                tail_entity_pairs.append(eid_t)
+            for e_h, e_t in doc_epair_rels:
+                h_t.append(u_outs[did][e_h, e_t])
+                head_entity_pairs.append(e_h + offset)
+                tail_entity_pairs.append(e_t + offset)
+                pair_label = torch.zeros(self.cfg.num_rel)
+                for r in doc_epair_rels[(e_h, e_t)]:
+                    pair_label[self.cfg.data_rel2id[r]] = 1
+                batch_labels.append(pair_label)
+        #_______
 
+        # for did in range(len(start_entity_pos) - 1):
+        #     doc_epair_rels = batch_epair_rels[did]
+        #     offset = int(start_entity_pos[did])
+        #     for eid_h, eid_t in permutations(np.arange(offset, int(start_entity_pos[did + 1])), 2):
+        #         h_t.append(u_outs[did][eid_h - offset, eid_t - offset])
+        #         pair_labels = torch.zeros(self.cfg.num_rel)
+        #         for r in doc_epair_rels[(eid_h - offset, eid_t - offset)]:
+        #             pair_labels[self.cfg.data_rel2id[r]] = 1
+        #         batch_labels.append(pair_labels)
+        #         head_entity_pairs.append(eid_h)
+        #         tail_entity_pairs.append(eid_t)
 
         h_t = torch.stack(h_t)
         head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
