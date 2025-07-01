@@ -173,12 +173,6 @@ class Tester:
         with torch.no_grad():
             for idx_batch, batch_inputs in enumerate(self.prepare_batch(self.cfg.batch_size, dataset)):
                 batch_preds, batch_labels = model(batch_inputs, is_training=False)
-                print(batch_preds)
-                print(batch_labels)
-                P, R, F1 = self.cal_f1(batch_preds, batch_labels)
-                print(P, R, F1)
-                input("CHECK")
-
                 all_preds.append(batch_preds)
                 all_labels.append(batch_labels)
 
