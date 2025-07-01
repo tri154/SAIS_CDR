@@ -120,9 +120,10 @@ class Trainer:
                     'num_sent_per_doc': num_sent_per_doc}
             
     def debug(self):
-        for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
-            out = self.model(batch_input, is_training=True)
-            input("STOP")
+        self.tester.test(self.model, 'test')
+        # for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
+        #     out = self.model(batch_input, is_training=True)
+        #     input("STOP")
                 
 
     def train_one_epoch(self, batch_size):

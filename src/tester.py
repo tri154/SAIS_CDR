@@ -146,11 +146,23 @@ class Tester:
     #                 'num_entity_per_doc': num_entity_per_doc}
 
 
+    # def cal_f1(self, preds, labels, epsilon=1e-8):
+    #     TP = (preds * labels).sum()
+    #     precision = TP / (preds.sum() + epsilon)
+    #     recall = TP / (labels.sum() + epsilon)
+    #     f1 = 2 * (precision * recall) / (precision + recall + epsilon)
+    #     return precision, recall, f1
+
+
     def cal_f1(self, preds, labels, epsilon=1e-8):
-        TP = (preds * labels).sum()
-        precision = TP / (preds.sum() + epsilon)
-        recall = TP / (labels.sum() + epsilon)
-        f1 = 2 * (precision * recall) / (precision + recall + epsilon)
+        preds = preds.to(dtype=torch.int)
+        labels = preds.to(dtype=torch.int)
+        tp = ((preds[:, 1] == 1) & (labels[:, 1] == 1)).astype(np.float32).sum()
+        tn = ((labels[:, 1] == 1) & (preds[:, 1] != 1)).astype(np.float32).sum()
+        fp = ((preds[:, 1] == 1) & (labels[:, 1] != 1)).astype(np.float32).sum()
+        precision = tp / (tp + fp + 1e-5)
+        recall = tp / (tp + tn + 1e-5)
+        f1 = 2 * precision * recall / (precision + recall + 1e-5)
         return precision, recall, f1
 
         
@@ -161,6 +173,12 @@ class Tester:
         with torch.no_grad():
             for idx_batch, batch_inputs in enumerate(self.prepare_batch(self.cfg.batch_size, dataset)):
                 batch_preds, batch_labels = model(batch_inputs, is_training=False)
+                print(batch_preds)
+                print(batch_labels)
+                P, R, F1 = self.cal_f1(batch_preds, batch_labels)
+                print(P, R, F1)
+                input("CHECK")
+
                 all_preds.append(batch_preds)
                 all_labels.append(batch_labels)
 
