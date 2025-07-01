@@ -28,7 +28,7 @@ class Preprocessing:
         #             'doc_title': doc_title,
         #             'doc_start_mpos': doc_start_mpos, # a dict of set. entity_id -> set of start of mentions token.
         #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
-        self.train_set = None 
+        self.train_set = None
         self.dev_set = None
         self.test_set = None
 
