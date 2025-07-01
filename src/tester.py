@@ -71,10 +71,14 @@ class Tester:
 
 
     def cal_f1(self, preds, labels, epsilon=1e-8):
-        TP = (preds * labels).sum()
-        precision = TP / (preds.sum() + epsilon)
-        recall = TP / (labels.sum() + epsilon)
-        f1 = 2 * (precision * recall) / (precision + recall + epsilon)
+        preds = preds.to(dtype=torch.int)
+        labels = labels.to(dtype=torch.int)
+        tp = ((preds[:, 1] == 1) & (labels[:, 1] == 1)).to(dtype=torch.float32).sum()
+        tn = ((labels[:, 1] == 1) & (preds[:, 1] != 1)).to(dtype=torch.float32).sum()
+        fp = ((preds[:, 1] == 1) & (labels[:, 1] != 1)).to(dtype=torch.float32).sum()
+        precision = tp / (tp + fp + epsilon)
+        recall = tp / (tp + tn + epsilon)
+        f1 = 2 * precision * recall / (precision + recall + epsilon)
         return precision, recall, f1
 
         
