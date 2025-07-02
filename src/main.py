@@ -8,13 +8,12 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.multiprocessing as mp
 import torch
 
-def train_DDP(rank, cfg):
+def train_DDP(rank, cfg, pre):
     is_ddp = cfg.world_size != 1
     if is_ddp:
         setup(rank, cfg.world_size)
         cfg.device = rank
 
-    pre = Preprocessing(cfg)
     train_set, dev_set, test_set = pre.train_set, pre.dev_set, pre.test_set
 
     if is_ddp:
@@ -36,12 +35,13 @@ def train_DDP(rank, cfg):
 
 if __name__ == '__main__':
     cfg = Config()
+    pre = Preprocessing(cfg)
 
     if cfg.world_size == 1:
         train_DDP(rank=0, cfg=cfg)
     else:
         mp.spawn(train_DDP,
-                 args=(cfg,),
+                 args=(cfg, pre),
                  nprocs=cfg.world_size,
                  join=True)
 
