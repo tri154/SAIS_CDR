@@ -98,11 +98,11 @@ class Tester:
 
 
         if self.cfg.world_size > 1:
-            gathered_preds = [torch.zeros_like(all_preds) for _ in range(self.cfg.world_size)]
-            gathered_labels = [torch.zeros_like(all_labels) for _ in range(self.cfg.world_size)]
+            gathered_preds = [torch.zeros_like(preds) for _ in range(self.cfg.world_size)]
+            gathered_labels = [torch.zeros_like(labels) for _ in range(self.cfg.world_size)]
 
-            dist.all_gather(gathered_preds, all_preds)
-            dist.all_gather(gathered_labels, all_labels)
+            dist.all_gather(gathered_preds, preds)
+            dist.all_gather(gathered_labels, labels)
 
             if dist.get_rank() == 0:
                 preds = torch.cat(gathered_preds, dim=0)
