@@ -8,7 +8,7 @@ from collections import defaultdict
 class Preprocessing:
     def __init__(self, cfg):
         self.cfg = cfg
-        is_done = len(os.listdir(cfg.dir_dataset_pro)) != 1
+        is_done = len(os.listdir(cfg.dir_dataset_pro)) > 1
 
         if not is_done:
             config = AutoConfig.from_pretrained(cfg.transformer, num_labels=cfg.num_rel)
@@ -39,6 +39,7 @@ class Preprocessing:
 
     def __prepare_corpus(self, corpus):
         corpus_data = [] # list of dict
+
         for did, doc in enumerate(corpus): #each doc
             doc_data = self.__prepare_doc(doc)
             corpus_data.append(doc_data)

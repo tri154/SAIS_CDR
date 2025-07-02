@@ -3,6 +3,7 @@ import math
 import torch.nn.functional as F 
 import torch.nn.utils.rnn as rnn
 import numpy as np
+import torch.distributed as dist
 
 class Tester:
     def __init__(self, cfg, dev_set, test_set):
@@ -92,8 +93,23 @@ class Tester:
                 all_preds.append(batch_preds)
                 all_labels.append(batch_labels)
 
-        all_preds = torch.cat(all_preds, dim=0).to(self.cfg.device)
-        all_labels = torch.cat(all_labels, dim=0).to(self.cfg.device)
+        preds = torch.cat(all_preds, dim=0).to(self.cfg.device)
+        labels = torch.cat(all_labels, dim=0).to(self.cfg.device)
 
-        precision, recall, f1 = self.cal_f1(all_preds, all_labels)
+
+        if self.cfg.world_size > 1:
+            gathered_preds = [torch.zeros_like(all_preds) for _ in range(self.cfg.world_size)]
+            gathered_labels = [torch.zeros_like(all_labels) for _ in range(self.cfg.world_size)]
+
+            dist.all_gather(gathered_preds, all_preds)
+            dist.all_gather(gathered_labels, all_labels)
+
+            if dist.get_rank() == 0:
+                preds = torch.cat(gathered_preds, dim=0)
+                labels = torch.cat(gathered_labels, dim=0)
+            
+            else:
+                return None, None, None
+
+        precision, recall, f1 = self.cal_f1(preds, labels)
         return precision, recall, f1

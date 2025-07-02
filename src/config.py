@@ -5,6 +5,7 @@ import random
 import torch
 import numpy as np
 import time
+import torch.distributed as dist
 
 
 def parse_args():
@@ -29,9 +30,20 @@ def parse_args():
     parser.add_argument('--transformer', type=str, default='bert-base-cased')
     parser.add_argument('--bilinear_block_size', type=int, default=64)
 
+    parser.add_argument('--world_size', type=int, default=1)
+
     args = parser.parse_args()
     
     return args
+
+def setup(rank, world_size):
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+
+    dist.init_process_group("ncll", rank=rank, world_size=world_size)
+
+def cleanup():
+    dist.destroy_process_group()
 
 
 class Config:
@@ -101,9 +113,5 @@ class Config:
     def logging(self, text):
         with open(self.log_path, 'a') as file:
             print(time.strftime("%Y %b %d %a, %H:%M:%S: ") + text, file=file, flush=True)
-
-        
-
-
 
         

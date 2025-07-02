@@ -7,8 +7,7 @@ from torch.nn.utils import clip_grad_norm_
 from collections import defaultdict
 from transformers.optimization import get_linear_schedule_with_warmup
 from torch.optim import AdamW
-from tqdm import tqdm
-
+import torch.distributed as dist
 
 class Trainer:
     def __init__(self, cfg, model, train_set=None, tester=None):
@@ -18,7 +17,6 @@ class Trainer:
         self.tester = tester
 
         self.opt, self.sched = self.prepare_optimizer_scheduler()
-
 
     # doc_data = {'doc_tokens': doc_tokens, # list of token id of the doc. single dimension single dimension.
     #             'doc_title': doc_title,
@@ -104,7 +102,8 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
-            loss = self.model(batch_input, is_training=False)
+            loss = self.model(batch_input, is_training=True)
+            print(loss)
             input("Stop")
                 
         self.tester.test(self.model, dataset='dev')
@@ -132,17 +131,23 @@ class Trainer:
         if train_set is not None:
             self.train_set = train_set
 
+        is_main_process = self.cfg.device in [0, 'cpu']
+        
         best_f1, best_epoch = 0, 0
-        for idx_epoch in tqdm(range(num_epoches)):
+        for idx_epoch in range(num_epoches):
 
             self.train_one_epoch(batch_size)
             presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
-            print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
+            if is_main_process:
+                print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
 
-            if f1 >= best_f1:
+            if is_main_process and f1 >= best_f1:
                 best_f1, best_epoch = f1, idx_epoch
                 torch.save(self.model.state_dict(), self.cfg.save_path)
 
+        if self.cfg.world_size > 1:
+            dist.barrier()
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
         precision, recall, f1 = self.tester.test(self.model, dataset='test')
-        print(f"Test result: P={precision}, R={recall}, F1={f1}")
+        if is_main_process:
+            print(f"Test result: P={precision}, R={recall}, F1={f1}")
