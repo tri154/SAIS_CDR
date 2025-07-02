@@ -24,7 +24,8 @@ def train_DDP(rank, cfg, pre):
 
     model = Model(cfg).to(cfg.device)
     if is_ddp:
-        model = DDP(model, device_ids=[rank])
+        model = DDP(model, device_ids=[rank], ignore_non_tensor_inputs=True)
+
     tester = Tester(cfg, dev_set=dev_set, test_set=test_set)
     trainer = Trainer(cfg, model, train_set=train_set, tester=tester)
     trainer.train(cfg.num_epoch, cfg.batch_size)
