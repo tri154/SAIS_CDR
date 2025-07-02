@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument("--pretrained_lr", type=float, default=5e-5)
 
 
-    parser.add_argument('--device', type=str, default='cuda:0')
+    parser.add_argument('--device', type=int, default=0)
     parser.add_argument('--transformer', type=str, default='bert-base-cased')
     parser.add_argument('--bilinear_block_size', type=int, default=64)
 
