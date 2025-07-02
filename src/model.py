@@ -128,6 +128,10 @@ class Model(nn.Module):
         
 
     def forward(self, batch_input, is_training=False):
+        print(f"Rank {self.cfg.device} batch_input keys and types:")
+        for k, v in batch_input.items():
+            print(f"  {k}: {type(v)}")
+
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
