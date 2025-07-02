@@ -83,9 +83,9 @@ class Preprocessing:
 
         doc_data = {'doc_tokens': doc_tokens,
                     'doc_title': doc_title,
-                    'doc_start_mpos': doc_start_mpos,
+                    'doc_start_mpos': dict(doc_start_mpos),
                     'doc_sent_pos': doc_sent_pos,
-                    'doc_epair_rels': doc_epair_rels}
+                    'doc_epair_rels': dict(doc_epair_rels)}
 
             
         return doc_data
