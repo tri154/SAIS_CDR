@@ -104,10 +104,10 @@ class Trainer:
             
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
-            loss = self.model(batch_input, is_training=False)
+            loss = self.model(batch_input, is_training=True)
+            print(loss)
             input("Stop")
                 
-        self.tester.test(self.model, dataset='dev')
 
     def train_one_epoch(self, batch_size):
         self.model.train()
