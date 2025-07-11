@@ -1,4 +1,4 @@
-import os 
+import os
 import json
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 import torch
@@ -14,7 +14,7 @@ class Preprocessing:
             config = AutoConfig.from_pretrained(cfg.transformer, num_labels=cfg.num_rel)
             self.tokenizer = AutoTokenizer.from_pretrained(cfg.transformer) # only load hidden states, that will output (batch_size, max_seq_length, 768) Bert case.
             transformer = AutoModel.from_pretrained(cfg.transformer, config=config) #NOTE: remove if not use.
-    
+
             config.cls_token_id = self.tokenizer.cls_token_id
             config.sep_token_id = self.tokenizer.sep_token_id
 
@@ -93,6 +93,6 @@ class Preprocessing:
                     'doc_sent_pos': doc_sent_pos,
                     'doc_epair_rels': doc_epair_rels}
 
-            
+
         return doc_data, is_error
 

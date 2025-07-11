@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 
 class Trainer:
-    def __init__(self, cfg, model, train_set=None, tester=None):
+    def __init__(self, cfg, model, train_set, tester):
         self.cfg = cfg
         self.model = model
         self.train_set = train_set
@@ -42,7 +42,7 @@ class Trainer:
         sched = get_linear_schedule_with_warmup(opt, num_warmups, num_updates)
 
         return opt, sched
-               
+
     def prepare_batch(self, batch_size):
         inputs = self.train_set
         num_batch = math.ceil(len(inputs) / batch_size)
@@ -72,9 +72,9 @@ class Trainer:
 
                 batch_epair_rels.append(doc_input['doc_epair_rels'])
 
-            batch_token_seqs = rnn.pad_sequence(batch_token_seqs, batch_first=True, padding_value=0).long().to(self.cfg.device)
-            batch_token_masks = rnn.pad_sequence(batch_token_masks, batch_first=True, padding_value=0).float().to(self.cfg.device)
-            batch_token_types = rnn.pad_sequence(batch_token_types, batch_first=True, padding_value=0).long().to(self.cfg.device)
+            batch_token_seqs = rnn.pad_sequence(batch_token_seqs, batch_first=True, padding_value=0).long()
+            batch_token_masks = rnn.pad_sequence(batch_token_masks, batch_first=True, padding_value=0).float()
+            batch_token_types = rnn.pad_sequence(batch_token_types, batch_first=True, padding_value=0).long()
 
 
 
@@ -83,31 +83,32 @@ class Trainer:
             # num_entity_per_doc = torch.tensor([len(doc_start_mpos.values()) for doc_start_mpos in batch_start_mpos]) # Keep it on CPU.
             # batch_start_mpos = torch.stack([F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()]).to(self.cfg.device)
 
-            temp = [] 
+            temp = []
             num_entity_per_doc = []
             for doc_start_mpos in batch_start_mpos:
                 num_entity_per_doc.append(len(doc_start_mpos.values()))
                 for eid in sorted(doc_start_mpos): # Keep entity order.
                     mention_pos = doc_start_mpos[eid]
-                    temp.append(F.pad(torch.tensor(list(mention_pos)), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1))
+                    temp.append(F.pad(torch.tensor(sorted(list(mention_pos))), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1)) # Keep mention order
 
             batch_start_mpos = torch.stack(temp) #expecting: [sum entity, max_mention]
-            num_entity_per_doc = torch.tensor(num_entity_per_doc) # keep in cpu.
+            num_entity_per_doc = torch.tensor(num_entity_per_doc)
 
             yield {'batch_titles': np.array(batch_titles),
-                    'batch_token_seqs': batch_token_seqs,
-                    'batch_token_masks': batch_token_masks,
-                    'batch_token_types': batch_token_types,
-                    'batch_start_mpos': batch_start_mpos,
                     'batch_epair_rels': batch_epair_rels,
-                    'num_entity_per_doc': num_entity_per_doc}
-            
+                    'num_entity_per_doc': num_entity_per_doc.cpu(),
+                    'batch_token_seqs': batch_token_seqs.to(self.cfg.device),
+                    'batch_token_masks': batch_token_masks.to(self.cfg.device),
+                    'batch_token_types': batch_token_types.to(self.cfg.device),
+                    'batch_start_mpos': batch_start_mpos.to(self.cfg.device),
+                    }
+
     def debug(self):
         for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
             loss = self.model(batch_input, is_training=True)
             print(loss)
             input("Stop")
-                
+
 
     def train_one_epoch(self, batch_size):
         self.model.train()
