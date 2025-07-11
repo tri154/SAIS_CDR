@@ -85,18 +85,22 @@ class Trainer:
 
             temp = []
             num_entity_per_doc = []
-            for doc_start_mpos in batch_start_mpos:
+            num_mention_per_doc = [0 for _ in range(self.cfg.batch_size)]
+            for did, doc_start_mpos in enumerate(batch_start_mpos):
                 num_entity_per_doc.append(len(doc_start_mpos.values()))
                 for eid in sorted(doc_start_mpos): # Keep entity order.
                     mention_pos = doc_start_mpos[eid]
+                    num_mention_per_doc[did] += len(mention_pos)
                     temp.append(F.pad(torch.tensor(sorted(list(mention_pos))), pad=(0, max_m_n_p_b - len(mention_pos)), value=-1)) # Keep mention order
 
             batch_start_mpos = torch.stack(temp) #expecting: [sum entity, max_mention]
             num_entity_per_doc = torch.tensor(num_entity_per_doc)
+            num_mention_per_doc = torch.tensor(num_mention_per_doc)
 
             yield {'batch_titles': np.array(batch_titles),
                     'batch_epair_rels': batch_epair_rels,
                     'num_entity_per_doc': num_entity_per_doc.cpu(),
+                    'num_mention_per_doc': num_mention_per_doc.cpu(),
                     'batch_token_seqs': batch_token_seqs.to(self.cfg.device),
                     'batch_token_masks': batch_token_masks.to(self.cfg.device),
                     'batch_token_types': batch_token_types.to(self.cfg.device),

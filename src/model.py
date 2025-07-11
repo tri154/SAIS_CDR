@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
 from itertools import permutations
 from loss import Loss
+from torch_geometric.nn import RGCNConv
 
 
 class Transformer(nn.Module):
@@ -97,16 +98,58 @@ class Transformer(nn.Module):
 
         return batch_token_embs, batch_token_atts
 
+class RGCN(nn.Module):
+    """
+    Example useage:
+    x = torch.randn(4, 128)
+    node_type = torch.tensor([0, 0, 1, 2])
+    edge_index = torch.tensor([
+        [0, 1, 0, 1, 3],
+        [3, 3, 2, 2, 3]
+        ])
 
+    edge_type = torch.tensor([0, 0, 1, 1, 2])
+    model = RGCN(128, 128, 128, 3, 128)
+
+    out = model(x, node_type, edge_index, edge_type)
+    """
+
+    def __init__(self, in_channels, hidden_channels, out_channels, num_relations, num_node_type=3, type_dim=128):
+        super(RGCN, self).__init__()
+        self.activation = nn.ReLU()
+
+        self.node_emb = torch.nn.Embedding(num_node_type, type_dim)
+
+        self.convs = nn.ModuleList()
+        self.convs.append(RGCNConv(in_channels + type_dim, in_channels + type_dim, num_relations))
+        self.convs.append(RGCNConv(in_channels + type_dim, hidden_channels, num_relations))
+        self.convs.append(RGCNConv(hidden_channels, out_channels, num_relations))
+
+    def forward(self, x, node_type, edge_index, edge_type):
+        """
+        x: Node feature matrix [num_nodes, in_channels]
+        edge_index: Graph connectivity [2, num_edges]
+        edge_type: Edge type labels [num_edges]
+        """
+        x = torch.cat([x, self.node_emb(node_type)], dim=-1)
+        for conv in self.convs[:-1]:
+            x = self.activation(conv(x, edge_index, edge_type))
+        x = self.convs[-1](x, edge_index, edge_type)
+        return self.activation(x)
 
 class Model(nn.Module):
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, emb_size=512):
         super(Model, self).__init__()
         self.cfg = cfg
         self.transformer = Transformer(cfg)
+        self.emb_size = emb_size
         if cfg.transformer == 'bert-base-cased':
             self.hidden_dim = 768 #NOTE: change if transformer changes.
+
+
+        self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
+
         self.loss = Loss(cfg)
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
         self.W_t = nn.Linear(self.hidden_dim, self.hidden_dim)
@@ -118,13 +161,25 @@ class Model(nn.Module):
         #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
 
 
-    def compute_entity_embs(self, batch_token_embs, batch_start_mpos, num_entity_per_doc):
-        # batch_start_mpos: (sum_entity, max_mention_n) pad -1
-        batch_did = torch.arange(len(batch_token_embs)).repeat_interleave(num_entity_per_doc).unsqueeze(-1)
+    def compute_node_embs(self, batch_token_embs, batch_token_atts, batch_start_mpos, num_entity_per_doc, num_mention_per_doc):
+        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1)
         # batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative) #NOTE: can optimize.
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
-        return batch_entity_embs
+        batch_mention_pos = batch_start_mpos[batch_start_mpos != -1].flatten()
+        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_mention_per_doc).to(self.cfg.device)
+        batch_mention_embs = batch_token_embs[batch_did, batch_mention_pos]
+
+        print(batch_token_atts[0, 0, :10, :10])
+        input("HERE")
+
+
+
+
+
+        # return batch_entity_embs, batch_mention_embs, batch_sent_embs
+
+
 
 
     def forward(self, batch_input, is_training=False):
@@ -134,12 +189,15 @@ class Model(nn.Module):
         batch_start_mpos = batch_input['batch_start_mpos']
         batch_epair_rels = batch_input['batch_epair_rels']
         num_entity_per_doc = batch_input['num_entity_per_doc']
+        num_mention_per_doc = batch_input['num_mention_per_doc']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
+
+        batch_token_embs = self.extractor_trans(batch_token_embs)
         # DEMO
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         # DEMO
-        batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
+        batch_entity_embs, batch_mention_embs, batch_sent_embs = self.compute_node_embs(batch_token_embs, batch_token_atts, batch_start_mpos, num_entity_per_doc, num_mention_per_doc)
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
 
