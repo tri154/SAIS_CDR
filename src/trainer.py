@@ -46,6 +46,7 @@ class Trainer:
     def prepare_batch(self, batch_size):
         inputs = self.train_set
         num_batch = math.ceil(len(inputs) / batch_size)
+        device = self.cfg.device
 
         for idx_batch in range(num_batch):
             batch_inputs = inputs[idx_batch * batch_size:(idx_batch + 1) * batch_size]
@@ -107,10 +108,10 @@ class Trainer:
                     'num_sent_per_doc': num_sent_per_doc.cpu(), 
                     'num_entity_per_doc': num_entity_per_doc.cpu(),
                     'num_mention_per_doc': num_mention_per_doc.cpu(),
-                    'batch_token_seqs': batch_token_seqs.to(self.cfg.device),
-                    'batch_token_masks': batch_token_masks.to(self.cfg.device),
-                    'batch_token_types': batch_token_types.to(self.cfg.device),
-                    'batch_start_mpos': batch_start_mpos.to(self.cfg.device),
+                    'batch_token_seqs': batch_token_seqs.to(device),
+                    'batch_token_masks': batch_token_masks.to(device),
+                    'batch_token_types': batch_token_types.to(device),
+                    'batch_start_mpos': batch_start_mpos.to(device),
                     }
 
     def debug(self):

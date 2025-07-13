@@ -144,9 +144,10 @@ class Model(nn.Module):
         self.emb_size = emb_size
         if cfg.transformer == 'bert-base-cased':
             self.hidden_dim = 768 #NOTE: change if transformer changes.
-
+        self.num_node_types = 3
 
         self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
+        # self.type_embed = nn.Embedding(num_embeddings=self.num_node_types, embedding_dim=self.cfg.type_dim, padding_idx=None)
 
         self.loss = Loss(cfg)
         self.W_h = nn.Linear(self.hidden_dim, self.hidden_dim)
@@ -160,7 +161,7 @@ class Model(nn.Module):
 
 
     def compute_entity_embs(self, batch_token_embs, batch_start_mpos, num_entity_per_doc):
-        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1)
+        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1).to(self.cfg.device)
         # batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative) #NOTE: can optimize.
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
@@ -181,7 +182,7 @@ class Model(nn.Module):
             doc_token_atts = batch_token_atts[did]
             doc_sent_pos = batch_sent_pos[did]
 
-            for sid in sorted(doc_sent_pos):
+            for sid in sorted(doc_sent_pos): # keep sentence order.
                 start, end = doc_sent_pos[sid]
                 sent_token_embs = doc_token_embs[start:end]
                 sent_token_atts = doc_token_atts[:, start:end, start:end]
@@ -193,6 +194,7 @@ class Model(nn.Module):
         batch_sent_embs = torch.stack(batch_sent_embs).to(self.cfg.device)
         return batch_sent_embs
 
+
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
@@ -203,6 +205,7 @@ class Model(nn.Module):
         num_entity_per_doc = batch_input['num_entity_per_doc']
         num_mention_per_doc = batch_input['num_mention_per_doc']
         num_sent_per_doc = batch_input['num_sent_per_doc']
+        device = self.cfg.device
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_token_embs = self.extractor_trans(batch_token_embs)
@@ -210,11 +213,22 @@ class Model(nn.Module):
         # DEMO
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         # DEMO
+
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
         batch_mention_embs = self.compute_mention_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
         batch_sent_embs = self.compute_sentence_embs(batch_token_embs, batch_token_atts, batch_sent_pos)
 
+        batch_node_embs = [batch_entity_embs, batch_mention_embs, batch_sent_embs]
+        node_types = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
+        batch_node_embs = torch.cat(batch_node_embs, dim=0)
 
+        
+        #nodes order:
+        # doc1_e1, doc1_e2 ... doc1_en, doc2_e1, ...
+        # doc1_e1_mention_1, doc1_e1_mention2, ...
+        # doc1_sent1, doc1_sent2, ...
+
+        # ========================
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
 
@@ -233,9 +247,9 @@ class Model(nn.Module):
                     pair_label[self.cfg.data_rel2id[r]] = 1
                 batch_labels.append(pair_label)
 
-        head_entity_pairs = torch.tensor(head_entity_pairs).to(self.cfg.device)
-        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(self.cfg.device)
-        batch_labels = torch.stack(batch_labels).to(self.cfg.device)
+        head_entity_pairs = torch.tensor(head_entity_pairs).to(device)
+        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(device)
+        batch_labels = torch.stack(batch_labels).to(device)
 
         head_entity_embs = batch_entity_embs[head_entity_pairs]
         tail_entity_embs = batch_entity_embs[tail_entity_pairs]
