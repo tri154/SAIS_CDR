@@ -51,15 +51,18 @@ class Trainer:
             batch_inputs = inputs[idx_batch * batch_size:(idx_batch + 1) * batch_size]
 
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
-            batch_titles = []
-            batch_start_mpos = []
+            batch_titles = list()
+            batch_start_mpos = list()
             batch_epair_rels = list()
-
+            batch_sent_pos = list()
+            num_sent_per_doc = list()
+  
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
                 batch_token_seqs.append(doc_input['doc_tokens'])
-                doc_start_mpos = doc_input['doc_start_mpos']
-                batch_start_mpos.append(doc_start_mpos)
+                batch_start_mpos.append(doc_input['doc_start_mpos'])
+                batch_sent_pos.append(doc_input['doc_sent_pos'])
+                num_sent_per_doc.append(len(doc_input['doc_sent_pos']))
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -96,9 +99,12 @@ class Trainer:
             batch_start_mpos = torch.stack(temp) #expecting: [sum entity, max_mention]
             num_entity_per_doc = torch.tensor(num_entity_per_doc)
             num_mention_per_doc = torch.tensor(num_mention_per_doc)
+            num_sent_per_doc = torch.tensor(num_sent_per_doc)
 
-            yield {'batch_titles': np.array(batch_titles),
+            yield { 'batch_titles': np.array(batch_titles),
                     'batch_epair_rels': batch_epair_rels,
+                    'batch_sent_pos': batch_sent_pos,
+                    'num_sent_per_doc': num_sent_per_doc.cpu(), 
                     'num_entity_per_doc': num_entity_per_doc.cpu(),
                     'num_mention_per_doc': num_mention_per_doc.cpu(),
                     'batch_token_seqs': batch_token_seqs.to(self.cfg.device),

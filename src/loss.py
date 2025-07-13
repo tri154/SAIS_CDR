@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 class Loss:
+    # TODO: eliminate clone()
     def __init__(self, cfg):
         self.cfg = cfg
 

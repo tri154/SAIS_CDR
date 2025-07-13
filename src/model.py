@@ -1,9 +1,7 @@
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
-from itertools import permutations
 from loss import Loss
 from torch_geometric.nn import RGCNConv
 
@@ -100,7 +98,7 @@ class Transformer(nn.Module):
 
 class RGCN(nn.Module):
     """
-    Example useage:
+    Example usage:
     x = torch.randn(4, 128)
     node_type = torch.tensor([0, 0, 1, 2])
     edge_index = torch.tensor([
@@ -161,26 +159,39 @@ class Model(nn.Module):
         #             'doc_sent_pos': doc_sent_pos} # a dict, sent_id -> (start, end) in token.
 
 
-    def compute_node_embs(self, batch_token_embs, batch_token_atts, batch_start_mpos, num_entity_per_doc, num_mention_per_doc):
+    def compute_entity_embs(self, batch_token_embs, batch_start_mpos, num_entity_per_doc):
         batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1)
         # batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative) #NOTE: can optimize.
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
+        return batch_entity_embs
+
+    def compute_mention_embs(self, batch_token_embs, batch_start_mpos, num_mention_per_doc):
         batch_mention_pos = batch_start_mpos[batch_start_mpos != -1].flatten()
         batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_mention_per_doc).to(self.cfg.device)
         batch_mention_embs = batch_token_embs[batch_did, batch_mention_pos]
 
-        print(batch_token_atts[0, 0, :10, :10])
-        input("HERE")
+        return batch_mention_embs
 
+    def compute_sentence_embs(self, batch_token_embs, batch_token_atts, batch_sent_pos):
+        batch_sent_embs = list()
 
+        for did in range(self.cfg.batch_size):
+            doc_token_embs = batch_token_embs[did]
+            doc_token_atts = batch_token_atts[did]
+            doc_sent_pos = batch_sent_pos[did]
 
+            for sid in sorted(doc_sent_pos):
+                start, end = doc_sent_pos[sid]
+                sent_token_embs = doc_token_embs[start:end]
+                sent_token_atts = doc_token_atts[:, start:end, start:end]
 
+                sent_token_atts = sent_token_atts.mean(dim=(1, 0))
+                sent_token_atts = sent_token_atts / sent_token_atts.sum(0)
+                batch_sent_embs.append(sent_token_atts @ sent_token_embs)
 
-        # return batch_entity_embs, batch_mention_embs, batch_sent_embs
-
-
-
+        batch_sent_embs = torch.stack(batch_sent_embs).to(self.cfg.device)
+        return batch_sent_embs
 
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
@@ -188,16 +199,22 @@ class Model(nn.Module):
         batch_token_types = batch_input['batch_token_types']
         batch_start_mpos = batch_input['batch_start_mpos']
         batch_epair_rels = batch_input['batch_epair_rels']
+        batch_sent_pos = batch_input['batch_sent_pos']
         num_entity_per_doc = batch_input['num_entity_per_doc']
         num_mention_per_doc = batch_input['num_mention_per_doc']
+        num_sent_per_doc = batch_input['num_sent_per_doc']
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
-
         batch_token_embs = self.extractor_trans(batch_token_embs)
+
         # DEMO
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         # DEMO
-        batch_entity_embs, batch_mention_embs, batch_sent_embs = self.compute_node_embs(batch_token_embs, batch_token_atts, batch_start_mpos, num_entity_per_doc, num_mention_per_doc)
+        batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
+        batch_mention_embs = self.compute_mention_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
+        batch_sent_embs = self.compute_sentence_embs(batch_token_embs, batch_token_atts, batch_sent_pos)
+
+
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
 
@@ -230,6 +247,7 @@ class Model(nn.Module):
         tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
         batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
         batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
+
 
         if is_training:
             return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
