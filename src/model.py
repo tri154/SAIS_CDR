@@ -194,6 +194,26 @@ class Model(nn.Module):
         batch_sent_embs = torch.stack(batch_sent_embs).to(self.cfg.device)
         return batch_sent_embs
 
+    def compute_node_embs(self,
+                          batch_token_embs,
+                          batch_token_atts,
+                          batch_start_mpos,
+                          batch_sent_pos,
+                          num_entity_per_doc,
+                          num_mention_per_doc,):
+        device = self.cfg.device
+        batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
+        batch_mention_embs = self.compute_mention_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
+        batch_sent_embs = self.compute_sentence_embs(batch_token_embs, batch_token_atts, batch_sent_pos)
+
+        batch_node_embs = [batch_entity_embs, batch_mention_embs, batch_sent_embs]
+        num_per_type = [len(type) for type in batch_node_embs]
+        node_types = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
+        batch_node_embs = torch.cat(batch_node_embs, dim=0)
+
+        return batch_node_embs, node_types, num_per_type
+
+
 
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
@@ -204,6 +224,7 @@ class Model(nn.Module):
         batch_sent_pos = batch_input['batch_sent_pos']
         num_entity_per_doc = batch_input['num_entity_per_doc']
         num_mention_per_doc = batch_input['num_mention_per_doc']
+        num_mention_per_entity = batch_input['num_mention_per_entity']
         num_sent_per_doc = batch_input['num_sent_per_doc']
         device = self.cfg.device
 
@@ -214,20 +235,27 @@ class Model(nn.Module):
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         # DEMO
 
-        batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
-        batch_mention_embs = self.compute_mention_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
-        batch_sent_embs = self.compute_sentence_embs(batch_token_embs, batch_token_atts, batch_sent_pos)
-
-        batch_node_embs = [batch_entity_embs, batch_mention_embs, batch_sent_embs]
-        node_types = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
-        batch_node_embs = torch.cat(batch_node_embs, dim=0)
-
-        
+        batch_node_embs, node_types, num_per_type = self.compute_node_embs(batch_token_embs,
+                                                                           batch_token_atts,
+                                                                           batch_start_mpos,
+                                                                           batch_sent_pos,
+                                                                           num_entity_per_doc,
+                                                                           num_mention_per_doc)
+    
         #nodes order:
         # doc1_e1, doc1_e2 ... doc1_en, doc2_e1, ...
         # doc1_e1_mention_1, doc1_e1_mention2, ...
         # doc1_sent1, doc1_sent2, ...
 
+        # mention - entity:
+        entity = torch.arange(len(num_mention_per_entity), device=device).repeat_interleave(num_mention_per_entity)
+        mention = torch.arange(num_per_type[0], num_per_type[0] + num_per_type[1], device=device)
+        entity_mention_links = torch.stack([entity, mention])
+
+        print(entity_mention_links)
+        input("HERE")
+
+        
         # ========================
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
