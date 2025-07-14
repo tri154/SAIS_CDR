@@ -214,6 +214,27 @@ class Model(nn.Module):
         return batch_node_embs, node_types, num_per_type
 
 
+    def get_entity_mention_link(self, num_mention_per_entity, num_per_type):
+        device = self.cfg.device
+        entity = torch.arange(len(num_mention_per_entity), device=device).repeat_interleave(num_mention_per_entity)
+        mention = torch.arange(num_per_type[0], num_per_type[0] + num_per_type[1], device=device)
+        entity_mention_links = torch.stack([entity, mention]).to(device)
+        return entity_mention_links
+
+    def get_sentence_sentence_link(self, num_sent_per_doc, num_per_type):
+        device = self.cfg.device
+        offset = num_per_type[0] + num_per_type[1]
+        n_cumsum = torch.cumsum(torch.cat([torch.tensor([0]), num_sent_per_doc], dim=0), dim=0)
+        start = []
+        for did in range(self.cfg.batch_size):
+            temp = torch.arange(int(n_cumsum[did]), int(n_cumsum[did + 1]) - 1, device=device)
+            start.append(temp)
+
+        start = torch.cat(start, dim=0)
+        start = start + offset
+        end = start + 1
+        sent_sent_links = torch.stack([start, end]).to(device)
+        return sent_sent_links
 
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
@@ -247,13 +268,8 @@ class Model(nn.Module):
         # doc1_e1_mention_1, doc1_e1_mention2, ...
         # doc1_sent1, doc1_sent2, ...
 
-        # mention - entity:
-        entity = torch.arange(len(num_mention_per_entity), device=device).repeat_interleave(num_mention_per_entity)
-        mention = torch.arange(num_per_type[0], num_per_type[0] + num_per_type[1], device=device)
-        entity_mention_links = torch.stack([entity, mention])
-
-        print(entity_mention_links)
-        input("HERE")
+        ent_ment_links = self.get_entity_mention_link(num_mention_per_entity, num_per_type)
+        sent_sent_links = self.get_sentence_sentence_link(num_sent_per_doc, num_per_type)
 
         
         # ========================
