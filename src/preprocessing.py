@@ -63,6 +63,7 @@ class Preprocessing:
 
         doc_tokens = []
         doc_start_mpos = defaultdict(set)
+        doc_mpos2sid = dict()
         doc_sent_pos = dict()
         for sid, sent in enumerate(doc['sents']): #each sentence
             sent_tokens = []
@@ -70,8 +71,10 @@ class Preprocessing:
                 tokens = self.tokenizer.tokenize(word)
                 if (sid, wid) in start_mpos:
                     tokens = [self.cfg.marker_entity] + tokens
-                    for eid in sid_pos2eid[(sid, wid)]:
-                        doc_start_mpos[eid].add(len(doc_tokens) + len(sent_tokens) + 1)
+                    mpos = len(doc_tokens) + len(sent_tokens) + 1
+                    doc_mpos2sid[mpos] = sid
+                    for eid in sid_pos2eid[(sid, wid)]: # 1 mention can have multiple eids.
+                        doc_start_mpos[eid].add(mpos)
                 if (sid, wid) in end_mpos:
                     tokens = tokens + [self.cfg.marker_entity]
                 sent_tokens += tokens
@@ -87,12 +90,41 @@ class Preprocessing:
             h, t, r = rel['h'], rel['t'], rel['r']
             doc_epair_rels[(h, t)].append(r)
 
+        temp = list()
+
+        for eid in sorted(doc_start_mpos.keys()):
+            for mpos in sorted(doc_start_mpos[eid]):
+                temp.append((mpos, doc_mpos2sid[mpos]))
+
+        doc_mpos2sid = torch.tensor(temp)
+
+        value_to_indices = defaultdict(list)
+        for idx, value in enumerate(doc_mpos2sid[:, 1]):
+            value_to_indices[int(value)].append(idx)
+
+        first_ments = list()
+        second_ments = list()
+        for indices in value_to_indices.values():
+            if len(indices) >= 2:
+                indices_tensor = torch.tensor(indices)
+                row, col = torch.triu_indices(len(indices_tensor), len(indices_tensor), offset=1)
+                first_ments.append(indices_tensor[row])
+                second_ments.append(indices_tensor[col])
+
+        if len(first_ments) != 0:
+            first_ments = torch.cat(first_ments)
+            second_ments = torch.cat(second_ments)
+            doc_mentions_link = torch.stack([first_ments, second_ments])
+        else:
+            doc_mentions_link = torch.empty((2, 0), dtype=torch.long)
+
         doc_data = {'doc_tokens': doc_tokens,
                     'doc_title': doc_title,
                     'doc_start_mpos': doc_start_mpos,
                     'doc_sent_pos': doc_sent_pos,
-                    'doc_epair_rels': doc_epair_rels}
+                    'doc_epair_rels': doc_epair_rels,
+                    'doc_mpos2sid': doc_mpos2sid,
+                    'doc_mentions_link': doc_mentions_link}
 
 
         return doc_data, is_error
-

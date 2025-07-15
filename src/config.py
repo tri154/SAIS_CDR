@@ -29,6 +29,7 @@ def parse_args():
     parser.add_argument('--transformer', type=str, default='bert-base-cased')
     parser.add_argument('--bilinear_block_size', type=int, default=64)
     parser.add_argument('--type_dim', type=int, default=20)
+    parser.add_argument('--graph_layers', type=int, default=1)
 
     args = parser.parse_args()
     

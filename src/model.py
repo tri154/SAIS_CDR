@@ -2,8 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+from transformers.models.auto.modeling_auto import MODEL_FOR_NEXT_SENTENCE_PREDICTION_MAPPING_NAMES
 from loss import Loss
 from torch_geometric.nn import RGCNConv
+from torch_geometric.utils import to_undirected
 
 
 class Transformer(nn.Module):
@@ -112,16 +114,22 @@ class RGCN(nn.Module):
     out = model(x, node_type, edge_index, edge_type)
     """
 
-    def __init__(self, in_channels, hidden_channels, out_channels, num_relations, num_node_type=3, type_dim=128):
+    def __init__(self, in_dim, hidden_dim, num_relations=4, num_node_type=3, type_dim=20, num_layers=1):
         super(RGCN, self).__init__()
         self.activation = nn.ReLU()
+        self.num_layers = num_layers
+        self.num_node_type = num_node_type
+        self.num_relations = num_relations
+        self.in_dim = in_dim
+        self.hidden_dim = hidden_dim
 
         self.node_emb = torch.nn.Embedding(num_node_type, type_dim)
 
         self.convs = nn.ModuleList()
-        self.convs.append(RGCNConv(in_channels + type_dim, in_channels + type_dim, num_relations))
-        self.convs.append(RGCNConv(in_channels + type_dim, hidden_channels, num_relations))
-        self.convs.append(RGCNConv(hidden_channels, out_channels, num_relations))
+        for layer in range(num_layers):
+            input_dim = in_dim + type_dim if layer == 0 else hidden_dim
+            self.convs.append(RGCNConv(input_dim, hidden_dim, num_relations))
+           
 
     def forward(self, x, node_type, edge_index, edge_type):
         """
@@ -130,10 +138,15 @@ class RGCN(nn.Module):
         edge_type: Edge type labels [num_edges]
         """
         x = torch.cat([x, self.node_emb(node_type)], dim=-1)
-        for conv in self.convs[:-1]:
+        output = list()
+        for id, conv in enumerate(self.convs):
             x = self.activation(conv(x, edge_index, edge_type))
-        x = self.convs[-1](x, edge_index, edge_type)
-        return self.activation(x)
+            if id == 0:
+                output.append(x)
+        if self.num_layers != 1:
+            output.append(x)
+        return output #first layer, and last layer
+
 
 class Model(nn.Module):
 
@@ -147,6 +160,7 @@ class Model(nn.Module):
         self.num_node_types = 3
 
         self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
+        self.rgcn = RGCN(emb_size, emb_size, num_relations=4, num_node_type=3, type_dim=self.cfg.type_dim, num_layers=self.cfg.graph_layers)
         # self.type_embed = nn.Embedding(num_embeddings=self.num_node_types, embedding_dim=self.cfg.type_dim, padding_idx=None)
 
         self.loss = Loss(cfg)
@@ -208,10 +222,10 @@ class Model(nn.Module):
 
         batch_node_embs = [batch_entity_embs, batch_mention_embs, batch_sent_embs]
         num_per_type = [len(type) for type in batch_node_embs]
-        node_types = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
+        nodes_type = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
         batch_node_embs = torch.cat(batch_node_embs, dim=0)
 
-        return batch_node_embs, node_types, num_per_type
+        return batch_node_embs, nodes_type, num_per_type
 
 
     def get_entity_mention_link(self, num_mention_per_entity, num_per_type):
@@ -219,7 +233,7 @@ class Model(nn.Module):
         entity = torch.arange(len(num_mention_per_entity), device=device).repeat_interleave(num_mention_per_entity)
         mention = torch.arange(num_per_type[0], num_per_type[0] + num_per_type[1], device=device)
         entity_mention_links = torch.stack([entity, mention]).to(device)
-        return entity_mention_links
+        return to_undirected(entity_mention_links)
 
     def get_sentence_sentence_link(self, num_sent_per_doc, num_per_type):
         device = self.cfg.device
@@ -234,7 +248,24 @@ class Model(nn.Module):
         start = start + offset
         end = start + 1
         sent_sent_links = torch.stack([start, end]).to(device)
-        return sent_sent_links
+        return to_undirected(sent_sent_links)
+
+    def get_ment_sent_link(self, batch_mpos2sid, num_sent_per_doc, num_mention_per_doc, num_per_type):
+        device = self.cfg.device
+        sent_cumsum = torch.cat([torch.tensor([0]), num_sent_per_doc], dim=-1).cumsum(dim=-1) + num_per_type[0] + num_per_type[1]
+        offsets = sent_cumsum[:-1].repeat_interleave(num_mention_per_doc).to(device)
+        sentence = batch_mpos2sid[:, 1] + offsets
+        mention = torch.arange(num_per_type[0], num_per_type[0] + num_per_type[1], device=device)
+        ment_sent_links = torch.stack([mention, sentence]).to(device)
+        return to_undirected(ment_sent_links)
+
+
+    def get_ment_ment_link(self, batch_mentions_link, num_mentlink_per_doc, num_mention_per_doc, num_per_type):
+        device = self.cfg.device
+        temp = torch.cat([torch.tensor([0]), num_mention_per_doc]).cumsum(dim=0) + num_per_type[0]
+        temp = temp[:-1].to(device).repeat_interleave(num_mentlink_per_doc).unsqueeze(0).to(device)
+        ment_ment_links = batch_mentions_link + temp
+        return to_undirected(ment_ment_links)
 
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
@@ -243,6 +274,9 @@ class Model(nn.Module):
         batch_start_mpos = batch_input['batch_start_mpos']
         batch_epair_rels = batch_input['batch_epair_rels']
         batch_sent_pos = batch_input['batch_sent_pos']
+        batch_mpos2sid = batch_input['batch_mpos2sid']
+        batch_mentions_link = batch_input['batch_mentions_link']
+        num_mentlink_per_doc = batch_input['num_mentlink_per_doc']
         num_entity_per_doc = batch_input['num_entity_per_doc']
         num_mention_per_doc = batch_input['num_mention_per_doc']
         num_mention_per_entity = batch_input['num_mention_per_entity']
@@ -256,7 +290,7 @@ class Model(nn.Module):
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
         # DEMO
 
-        batch_node_embs, node_types, num_per_type = self.compute_node_embs(batch_token_embs,
+        batch_node_embs, nodes_type, num_per_type = self.compute_node_embs(batch_token_embs,
                                                                            batch_token_atts,
                                                                            batch_start_mpos,
                                                                            batch_sent_pos,
@@ -268,10 +302,20 @@ class Model(nn.Module):
         # doc1_e1_mention_1, doc1_e1_mention2, ...
         # doc1_sent1, doc1_sent2, ...
 
-        ent_ment_links = self.get_entity_mention_link(num_mention_per_entity, num_per_type)
+        ent_ment_links = self.get_entity_mention_link(num_mention_per_entity, num_per_type) # TODO: move links to preprocessing for performance.
         sent_sent_links = self.get_sentence_sentence_link(num_sent_per_doc, num_per_type)
+        ment_sent_links = self.get_ment_sent_link(batch_mpos2sid, num_sent_per_doc, num_mention_per_doc, num_per_type)
+        ment_ment_links = self.get_ment_ment_link(batch_mentions_link, num_mentlink_per_doc, num_mention_per_doc, num_per_type)
 
-        
+        edges = [ent_ment_links, sent_sent_links, ment_sent_links, ment_ment_links]
+        edges_type = torch.arange(len(edges), device=device).repeat_interleave(torch.tensor([ts.shape[-1] for ts in edges], device=device))
+        edges = torch.cat(edges, dim=-1)
+
+        gcn_nodes = self.rgcn(batch_node_embs, nodes_type, edges, edges_type)
+
+        # ========================
+        # mention to metnion.
+
         # ========================
 
         start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
@@ -311,3 +355,4 @@ class Model(nn.Module):
             return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
         else:
             return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
+

@@ -57,13 +57,18 @@ class Trainer:
             batch_epair_rels = list()
             batch_sent_pos = list()
             num_sent_per_doc = list()
+            batch_mpos2sid = list()
+            batch_mentions_link = list()
   
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
                 batch_token_seqs.append(doc_input['doc_tokens'])
                 batch_start_mpos.append(doc_input['doc_start_mpos'])
                 batch_sent_pos.append(doc_input['doc_sent_pos'])
+                batch_mpos2sid.append(doc_input['doc_mpos2sid'])
+                batch_mentions_link.append(doc_input['doc_mentions_link'])
                 num_sent_per_doc.append(len(doc_input['doc_sent_pos']))
+
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -105,6 +110,10 @@ class Trainer:
             num_mention_per_doc = torch.tensor(num_mention_per_doc)
             num_sent_per_doc = torch.tensor(num_sent_per_doc)
             num_mention_per_entity = torch.tensor(num_mention_per_entity)
+            batch_mpos2sid = torch.cat(batch_mpos2sid, dim=0)
+
+            num_mentlink_per_doc = torch.tensor([ts.shape[-1] for ts in batch_mentions_link])
+            batch_mentions_link = torch.cat(batch_mentions_link, dim=-1)
 
             yield { 'batch_titles': np.array(batch_titles),
                     'batch_epair_rels': batch_epair_rels,
@@ -112,11 +121,14 @@ class Trainer:
                     'num_sent_per_doc': num_sent_per_doc.cpu(), 
                     'num_entity_per_doc': num_entity_per_doc.cpu(),
                     'num_mention_per_doc': num_mention_per_doc.cpu(),
+                    'num_mentlink_per_doc': num_mentlink_per_doc.cpu(),
                     'num_mention_per_entity': num_mention_per_entity.to(device),
                     'batch_token_seqs': batch_token_seqs.to(device),
                     'batch_token_masks': batch_token_masks.to(device),
                     'batch_token_types': batch_token_types.to(device),
                     'batch_start_mpos': batch_start_mpos.to(device),
+                    'batch_mpos2sid': batch_mpos2sid.to(device),
+                    'batch_mentions_link': batch_mentions_link.to(device),
                     }
 
     def debug(self):
