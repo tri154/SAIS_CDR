@@ -241,6 +241,7 @@ class Model(nn.Module):
         self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
         self.rgcn = RGCN(emb_size, emb_size, num_relations=4, num_node_type=3, type_dim=self.cfg.type_dim, num_layers=self.cfg.graph_layers)
         self.cnn = CNN(emb_size, device=self.cfg.device)
+        self.ht_extractor = nn.Linear(emb_size*4, emb_size*2)
         # self.type_embed = nn.Embedding(num_embeddings=self.num_node_types, embedding_dim=self.cfg.type_dim, padding_idx=None)
 
         self.loss = Loss(cfg)
@@ -364,6 +365,34 @@ class Model(nn.Module):
         relation_map = torch.stack(relation_map).to(device)
         return relation_map
 
+    def get_entity_pairs(self, batch_epair_rels, num_entity_per_doc):
+        device = self.cfg.device
+
+        head_entities = list()
+        tail_entities = list()
+        batch_labels = list()
+
+        for did in range(self.cfg.batch_size):
+            doc_epair_rels = batch_epair_rels[did]
+            for e_h, e_t in doc_epair_rels:
+                head_entities.append(e_h)
+                tail_entities.append(e_t)
+                pair_label = torch.zeros(self.cfg.num_rel)
+                for r in doc_epair_rels[(e_h, e_t)]:
+                    pair_label[self.cfg.data_rel2id[r]] = 1
+                batch_labels.append(pair_label)
+
+        start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
+        num_rel_per_doc = torch.tensor([len(doc_epair_rels) for doc_epair_rels in batch_epair_rels]).cpu()
+        offsets = start_entity_pos[:-1].repeat_interleave(num_rel_per_doc).to(device)
+
+        head_entities = torch.tensor(head_entities).to(device)
+        tail_entities = torch.tensor(tail_entities).to(device)
+        batch_labels = torch.stack(batch_labels).to(device)
+        
+        return head_entities, tail_entities, batch_labels, offsets, num_rel_per_doc # reuse
+        
+    
     def forward(self, batch_input, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
@@ -411,32 +440,24 @@ class Model(nn.Module):
         gcn_nodes = self.rgcn(batch_node_embs, nodes_type, edges, edges_type)
 
         relation_map = self.get_relation_map(gcn_nodes, num_entity_per_doc)
+        relation_map = self.cnn(relation_map) # 4, 512, n_e_max, n_e_max
 
-        relation_map = self.cnn(relation_map)
+        # =========
+        gcn_nodes = torch.cat(gcn_nodes, dim=-1)
+        head_entities, tail_entities, batch_labels, offsets, num_rel_per_doc = self.get_entity_pairs(batch_epair_rels, num_entity_per_doc)
+        entity_h = gcn_nodes[head_entities + offsets]
+        entity_t = gcn_nodes[tail_entities + offsets]
+        entity_ht = self.ht_extractor(torch.cat([entity_h, entity_t], dim=-1))
 
-        #CONTINUE: 
+        print(entity_ht.shape) #14, 1024
+        batch_did = torch.arange(self.cfg.batch_size, device=device).repeat_interleave(num_rel_per_doc).to(device)
+        relation = relation_map[batch_did, :, head_entities, tail_entities]
+        print(relation.shape) #14, 512
+        
+
+
         # ========================
 
-        start_entity_pos = torch.cumsum(torch.cat([torch.tensor([0]), num_entity_per_doc]), dim=0)
-
-        head_entity_pairs = list()
-        tail_entity_pairs = list()
-        batch_labels = list()
-
-        for did in range(self.cfg.batch_size):
-            doc_epair_rels = batch_epair_rels[did]
-            offset = int(start_entity_pos[did])
-            for e_h, e_t in doc_epair_rels:
-                head_entity_pairs.append(e_h + offset)
-                tail_entity_pairs.append(e_t + offset)
-                pair_label = torch.zeros(self.cfg.num_rel)
-                for r in doc_epair_rels[(e_h, e_t)]:
-                    pair_label[self.cfg.data_rel2id[r]] = 1
-                batch_labels.append(pair_label)
-
-        head_entity_pairs = torch.tensor(head_entity_pairs).to(device)
-        tail_entity_pairs = torch.tensor(tail_entity_pairs).to(device)
-        batch_labels = torch.stack(batch_labels).to(device)
 
         head_entity_embs = batch_entity_embs[head_entity_pairs]
         tail_entity_embs = batch_entity_embs[tail_entity_pairs]
