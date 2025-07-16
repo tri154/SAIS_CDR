@@ -264,7 +264,7 @@ class Model(nn.Module):
             if batch_teacher_logits is not None:
                 kd_loss, current_tradeoff = self.loss.PSD_loss(logits, batch_teacher_logits, current_epoch)
             loss = at_loss + kd_loss * current_tradeoff
-            return loss, torch.split(logits.cpu(), num_rel_per_doc.tolist())
+            return loss, torch.split(logits.detach().cpu(), num_rel_per_doc.tolist())
         else:
             return self.loss.AT_pred(logits), batch_labels
         
