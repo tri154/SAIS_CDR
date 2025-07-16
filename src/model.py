@@ -126,7 +126,7 @@ class Model(nn.Module):
     def get_ment_ment_link(self, batch_mentions_link, num_mentlink_per_doc, num_mention_per_doc, num_per_type):
         device = self.cfg.device
         temp = torch.cat([torch.tensor([0]), num_mention_per_doc]).cumsum(dim=0) + num_per_type[0]
-        temp = temp[:-1].to(device).repeat_interleave(num_mentlink_per_doc).unsqueeze(0).to(device)
+        temp = temp[:-1].repeat_interleave(num_mentlink_per_doc).unsqueeze(0).to(device)
         ment_ment_links = batch_mentions_link + temp
         return to_undirected(ment_ment_links)
 

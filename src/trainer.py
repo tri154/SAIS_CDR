@@ -1,3 +1,4 @@
+%%writefile trainer.py
 import numpy as np
 import torch
 import torch.nn.utils.rnn as rnn
@@ -141,7 +142,7 @@ class Trainer:
 
     def PSD_add_logits(self, batch_logits, indicies):
         for did, doc_idx in enumerate(range(indicies[0], indicies[1])):
-            print((did,doc_idx))
+            self.train_set[doc_idx]['teacher_logits'] = batch_logits[did]
 
 
     def train_one_epoch(self, batch_size):
@@ -155,7 +156,6 @@ class Trainer:
         for idx_batch, batch_input in enumerate(self.prepare_batch(batch_size)):
             batch_loss, batch_logits = self.model(batch_input, is_training=True)
             self.PSD_add_logits(batch_logits, batch_input['indices'])
-            input("HERE")
             (batch_loss / self.cfg.update_freq).backward()
 
             if idx_batch % self.cfg.update_freq == 0 or idx_batch == num_batch - 1:
