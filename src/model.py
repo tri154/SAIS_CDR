@@ -175,7 +175,7 @@ class Model(nn.Module):
         return head_entities, tail_entities, batch_labels, offsets, num_rel_per_doc # reuse
         
     
-    def forward(self, batch_input, current_epoch, is_training=False):
+    def forward(self, batch_input, current_epoch=None, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']

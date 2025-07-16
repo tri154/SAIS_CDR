@@ -156,7 +156,7 @@ class Trainer:
 
 
         for idx_batch, batch_input in enumerate(tqdm(self.prepare_batch(batch_size), total=num_batch)):
-            batch_loss, batch_logits = self.model(batch_input, current_epoch, is_training=True)
+            batch_loss, batch_logits = self.model(batch_input, current_epoch=current_epoch, is_training=True)
             self.PSD_add_logits(batch_logits, batch_input['indices'])
             (batch_loss / self.cfg.update_freq).backward()
 
