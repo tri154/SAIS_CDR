@@ -1,11 +1,13 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 class Loss:
     # TODO: eliminate clone()
     def __init__(self, cfg):
         self.cfg = cfg
+        self.kd_loss = nn.KLDivLoss(reduction='batchmean')
 
-    def ATLOP_loss(self, batch_RE_reps, batch_epair_rels):
+    def AT_loss(self, batch_RE_reps, batch_epair_rels): #dont use anymore because of clone.
         batch_pos_thre = torch.clone(batch_epair_rels)
         batch_pos_thre[:, self.cfg.id_rel_thre] = 1
 
@@ -21,8 +23,28 @@ class Loss:
         batch_neg_loss = batch_neg_loss.sum(-1)
 
         return (batch_pos_loss + batch_neg_loss).mean()
+    def AT_loss_original(self, logits, labels):
+        th_label = torch.zeros_like(labels, dtype=torch.float).to(labels)
+        th_label[:, 0] = 1.0
+        labels[:, 0] = 0.0
 
-    def ATLOP_pred(self, logits):
+        p_mask = labels + th_label
+        n_mask = 1 - labels
+
+        # Rank positive classes to TH
+        logit1 = logits - (1 - p_mask) * 1e30
+        loss1 = -(F.log_softmax(logit1, dim=-1) * labels).sum(1)
+
+        # Rank TH to negative classes
+        logit2 = logits - (1 - n_mask) * 1e30
+        loss2 = -(F.log_softmax(logit2, dim=-1) * th_label).sum(1)
+
+        # Sum two parts
+        loss = loss1 + loss2
+        loss = loss.mean()
+        return loss
+    
+    def AT_pred(self, logits):
         th_logit = logits[:, 0].unsqueeze(1)
         output = torch.zeros_like(logits).to(logits)
         mask = (logits > th_logit)
@@ -33,6 +55,9 @@ class Loss:
         output[:, 0] = (output.sum(1) == 0.).to(logits)
         return output
 
+
+    def PSD_loss(self, logits, labels):
+        pass
 
 
 

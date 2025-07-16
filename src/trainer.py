@@ -49,7 +49,8 @@ class Trainer:
         device = self.cfg.device
 
         for idx_batch in range(num_batch):
-            batch_inputs = inputs[idx_batch * batch_size:(idx_batch + 1) * batch_size]
+            indicies = (idx_batch * batch_size, (idx_batch + 1) * batch_size)
+            batch_inputs = inputs[indicies[0]:indicies[1]]
 
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
             batch_titles = list()
@@ -115,7 +116,8 @@ class Trainer:
             num_mentlink_per_doc = torch.tensor([ts.shape[-1] for ts in batch_mentions_link])
             batch_mentions_link = torch.cat(batch_mentions_link, dim=-1)
 
-            yield { 'batch_titles': np.array(batch_titles),
+            yield { 'indices': indicies,
+                    'batch_titles': np.array(batch_titles),
                     'batch_epair_rels': batch_epair_rels,
                     'batch_sent_pos': batch_sent_pos,
                     'num_sent_per_doc': num_sent_per_doc.cpu(), 
@@ -132,10 +134,14 @@ class Trainer:
                     }
 
     def debug(self):
-        for idx_batch, batch_input in enumerate(self.prepare_batch(self.cfg.batch_size)):
+        for  batch_input in self.prepare_batch(self.cfg.batch_size):
             loss = self.model(batch_input, is_training=True)
             print(loss)
             input("Stop")
+
+    def PSD_add_logits(self, batch_logits, indicies):
+        for did, doc_idx in enumerate(range(indicies[0], indicies[1])):
+            print((did,doc_idx))
 
 
     def train_one_epoch(self, batch_size):
@@ -147,7 +153,9 @@ class Trainer:
         num_batch = math.ceil(len(self.train_set) / batch_size)
 
         for idx_batch, batch_input in enumerate(self.prepare_batch(batch_size)):
-            batch_loss = self.model(batch_input, is_training=True)
+            batch_loss, batch_logits = self.model(batch_input, is_training=True)
+            self.PSD_add_logits(batch_logits, batch_input['indices'])
+            input("HERE")
             (batch_loss / self.cfg.update_freq).backward()
 
             if idx_batch % self.cfg.update_freq == 0 or idx_batch == num_batch - 1:

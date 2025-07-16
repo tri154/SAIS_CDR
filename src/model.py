@@ -255,13 +255,10 @@ class Model(nn.Module):
         relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
         relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
         logits = self.bilinear(relation_rep)
-        print(logits)
-        # =========
 
-
+        loss = self.loss.AT_loss_original(logits, batch_labels)
+        return loss, torch.split(logits, num_rel_per_doc.tolist())
         
-        # ========================
-
         """
         head_entity_embs = batch_entity_embs[head_entity_pairs]
         tail_entity_embs = batch_entity_embs[tail_entity_pairs]

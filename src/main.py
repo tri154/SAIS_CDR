@@ -3,7 +3,7 @@ from trainer import Trainer
 from model import Model
 from tester import Tester
 from preprocessing import Preprocessing
-    
+
 if __name__ == '__main__':
     cfg = Config()
 
