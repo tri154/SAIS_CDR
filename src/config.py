@@ -31,6 +31,10 @@ def parse_args():
     parser.add_argument('--type_dim', type=int, default=20)
     parser.add_argument('--graph_layers', type=int, default=2, help='min = 2')
 
+    parser.add_argument('--lower_temp', type=float, default=2.0)
+    parser.add_argument('--upper_temp', type=float, default=2.0)
+    parser.add_argument('--loss_tradeoff', type=float, default=1.0)
+
     args = parser.parse_args()
     
     return args

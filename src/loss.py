@@ -7,22 +7,6 @@ class Loss:
         self.cfg = cfg
         self.kd_loss = nn.KLDivLoss(reduction='batchmean')
 
-    def AT_loss(self, batch_RE_reps, batch_epair_rels): #dont use anymore because of clone.
-        batch_pos_thre = torch.clone(batch_epair_rels)
-        batch_pos_thre[:, self.cfg.id_rel_thre] = 1
-
-        batch_pos_reps = batch_RE_reps + (1 - batch_pos_thre) * self.cfg.small_negative
-        batch_pos_loss = - (F.log_softmax(batch_pos_reps, dim=-1) * batch_epair_rels)
-        batch_pos_loss = batch_pos_loss.sum(-1)
-
-        batch_neg_thre = 1 - batch_epair_rels
-        batch_thre_rels = torch.zeros_like(batch_neg_thre)
-        batch_thre_rels[:, self.cfg.id_rel_thre] = 1
-        batch_neg_reps = batch_RE_reps + (1 - batch_neg_thre) * self.cfg.small_negative
-        batch_neg_loss = - (F.log_softmax(batch_neg_reps, dim=-1) * batch_thre_rels)
-        batch_neg_loss = batch_neg_loss.sum(-1)
-
-        return (batch_pos_loss + batch_neg_loss).mean()
     def AT_loss_original(self, logits, labels):
         th_label = torch.zeros_like(labels, dtype=torch.float).to(labels)
         th_label[:, 0] = 1.0
@@ -55,12 +39,27 @@ class Loss:
         output[:, 0] = (output.sum(1) == 0.).to(logits)
         return output
 
+    def AT_loss(self, batch_RE_reps, batch_epair_rels): #dont use anymore because of clone.
+        batch_pos_thre = torch.clone(batch_epair_rels)
+        batch_pos_thre[:, self.cfg.id_rel_thre] = 1
 
-    def PSD_loss(self, logits, labels):
-        pass
+        batch_pos_reps = batch_RE_reps + (1 - batch_pos_thre) * self.cfg.small_negative
+        batch_pos_loss = - (F.log_softmax(batch_pos_reps, dim=-1) * batch_epair_rels)
+        batch_pos_loss = batch_pos_loss.sum(-1)
 
+        batch_neg_thre = 1 - batch_epair_rels
+        batch_thre_rels = torch.zeros_like(batch_neg_thre)
+        batch_thre_rels[:, self.cfg.id_rel_thre] = 1
+        batch_neg_reps = batch_RE_reps + (1 - batch_neg_thre) * self.cfg.small_negative
+        batch_neg_loss = - (F.log_softmax(batch_neg_reps, dim=-1) * batch_thre_rels)
+        batch_neg_loss = batch_neg_loss.sum(-1)
 
+        return (batch_pos_loss + batch_neg_loss).mean()
 
+    def PSD_loss(self, logits, teacher_logits, current_epoch):
+        current_temp = self.cfg.upper_temp - (self.cfg.upper_temp - self.cfg.lower_temp) * current_epoch / (self.cfg.num_epoch - 1.0)
+        current_tradeoff = self.cfg.loss_tradeoff * current_epoch / (self.cfg.num_epoch - 1.0)
+        loss = self.kd_loss(F.log_softmax(logits / current_temp, dim=1),
+                            F.softmax(teacher_logits / current_temp, dim=1))
 
-
-        
+        return loss, current_tradeoff

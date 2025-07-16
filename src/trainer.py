@@ -1,4 +1,3 @@
-%%writefile trainer.py
 import numpy as np
 import torch
 import torch.nn.utils.rnn as rnn
@@ -8,7 +7,6 @@ from torch.nn.utils import clip_grad_norm_
 from collections import defaultdict
 from transformers.optimization import get_linear_schedule_with_warmup
 from torch.optim import AdamW
-from tqdm import tqdm
 
 
 class Trainer:
@@ -61,6 +59,7 @@ class Trainer:
             num_sent_per_doc = list()
             batch_mpos2sid = list()
             batch_mentions_link = list()
+            batch_teacher_logits = list()
   
             for doc_input in batch_inputs:
                 batch_titles.append(doc_input['doc_title'])
@@ -71,6 +70,8 @@ class Trainer:
                 batch_mentions_link.append(doc_input['doc_mentions_link'])
                 num_sent_per_doc.append(len(doc_input['doc_sent_pos']))
 
+                if 'teacher_logits' in doc_input:
+                    batch_teacher_logits.append(doc_input['teacher_logits'])
 
                 doc_seqs_len = doc_input['doc_tokens'].shape[0]
                 batch_token_masks.append(torch.ones(doc_seqs_len))
@@ -86,8 +87,6 @@ class Trainer:
             batch_token_seqs = rnn.pad_sequence(batch_token_seqs, batch_first=True, padding_value=0).long()
             batch_token_masks = rnn.pad_sequence(batch_token_masks, batch_first=True, padding_value=0).float()
             batch_token_types = rnn.pad_sequence(batch_token_types, batch_first=True, padding_value=0).long()
-
-
 
             max_m_n_p_b = max([len(mention_pos) for doc_start_mpos in batch_start_mpos for mention_pos in doc_start_mpos.values()])  # max mention number in batch.
 
@@ -113,6 +112,7 @@ class Trainer:
             num_sent_per_doc = torch.tensor(num_sent_per_doc)
             num_mention_per_entity = torch.tensor(num_mention_per_entity)
             batch_mpos2sid = torch.cat(batch_mpos2sid, dim=0)
+            batch_teacher_logits = torch.cat(batch_teacher_logits, dim=0) if len(batch_teacher_logits) != 0 else None
 
             num_mentlink_per_doc = torch.tensor([ts.shape[-1] for ts in batch_mentions_link])
             batch_mentions_link = torch.cat(batch_mentions_link, dim=-1)
@@ -132,6 +132,7 @@ class Trainer:
                     'batch_start_mpos': batch_start_mpos.to(device),
                     'batch_mpos2sid': batch_mpos2sid.to(device),
                     'batch_mentions_link': batch_mentions_link.to(device),
+                    'batch_teacher_logits': batch_teacher_logits.to(device) if batch_teacher_logits is not None else None,
                     }
 
     def debug(self):
@@ -143,7 +144,6 @@ class Trainer:
     def PSD_add_logits(self, batch_logits, indicies):
         for did, doc_idx in enumerate(range(indicies[0], indicies[1])):
             self.train_set[doc_idx]['teacher_logits'] = batch_logits[did]
-
 
     def train_one_epoch(self, batch_size):
         self.model.train()
@@ -170,8 +170,8 @@ class Trainer:
             self.train_set = train_set
 
         best_f1, best_epoch = 0, 0
-        for idx_epoch in tqdm(range(num_epoches)):
-
+        for idx_epoch in range(num_epoches):
+            print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
             self.train_one_epoch(batch_size)
             presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
             print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")

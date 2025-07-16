@@ -175,7 +175,7 @@ class Model(nn.Module):
         return head_entities, tail_entities, batch_labels, offsets, num_rel_per_doc # reuse
         
     
-    def forward(self, batch_input, is_training=False):
+    def forward(self, batch_input, current_epoch, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
         batch_token_masks = batch_input['batch_token_masks']
         batch_token_types = batch_input['batch_token_types']
@@ -184,6 +184,7 @@ class Model(nn.Module):
         batch_sent_pos = batch_input['batch_sent_pos']
         batch_mpos2sid = batch_input['batch_mpos2sid']
         batch_mentions_link = batch_input['batch_mentions_link']
+        batch_teacher_logits = batch_input['batch_teacher_logits']
         num_mentlink_per_doc = batch_input['num_mentlink_per_doc']
         num_entity_per_doc = batch_input['num_entity_per_doc']
         num_mention_per_doc = batch_input['num_mention_per_doc']
@@ -256,25 +257,14 @@ class Model(nn.Module):
         relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
         logits = self.bilinear(relation_rep)
 
-        loss = self.loss.AT_loss_original(logits, batch_labels)
-        return loss, torch.split(logits, num_rel_per_doc.tolist())
-        
-        """
-        head_entity_embs = batch_entity_embs[head_entity_pairs]
-        tail_entity_embs = batch_entity_embs[tail_entity_pairs]
-
-        head_entity_rep = torch.tanh(self.W_h(head_entity_embs))
-        tail_entity_rep = torch.tanh(self.W_t(tail_entity_embs))
-
-        head_entity_rep = head_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        tail_entity_rep = tail_entity_rep.view(-1, self.hidden_dim // self.cfg.bilinear_block_size, self.cfg.bilinear_block_size)
-        batch_RE_reps = (head_entity_rep.unsqueeze(3) * tail_entity_rep.unsqueeze(2)).view(-1, self.hidden_dim * self.cfg.bilinear_block_size)
-        batch_RE_reps = self.RE_predictor_module(batch_RE_reps)
-
-
         if is_training:
-            return self.loss.ATLOP_loss(batch_RE_reps, batch_labels)
+            at_loss = self.loss.AT_loss_original(logits, batch_labels)
+            kd_loss = torch.tensor(0.0)
+            current_tradeoff = 0.0
+            if batch_teacher_logits is not None:
+                kd_loss, current_tradeoff = self.loss.PSD_loss(logits, batch_teacher_logits, current_epoch)
+            loss = at_loss + kd_loss * current_tradeoff
+            return loss, torch.split(logits.cpu(), num_rel_per_doc.tolist())
         else:
-            return self.loss.ATLOP_pred(batch_RE_reps), batch_labels
-        """
-
+            return self.loss.AT_pred(logits), batch_labels
+        
