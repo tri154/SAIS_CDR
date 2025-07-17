@@ -2,7 +2,6 @@ DATASET="cdr"
 SAVE_PATH="best.pt"
 LOG_PATH="log.txt"
 SEED=2004
-TQDM=True
 
 NUM_EPOCH=30
 BATCH_SIZE=4
@@ -31,7 +30,6 @@ python main.py \
   --save_path $SAVE_PATH \
   --log_path $LOG_PATH \
   --seed $SEED \
-  --tqdm $TQDM \
   --num_epoch $NUM_EPOCH \
   --batch_size $BATCH_SIZE \
   --update_freq $UPDATE_FREQ \

@@ -4,6 +4,7 @@ from main import run_training
 from config import Config
 
 def parse_args_from_trial(trial):
+    #NEED UPDATE
     suggested_new_lr = trial.suggest_float("new_lr", 1e-5, 1e-3, log=True)
     suggested_pretrained_lr = trial.suggest_float("pretrained_lr", 1e-5, 1e-3, log=True)
     suggested_graph_layers = trial.suggest_int("graph_layers", 2, 5, log=True)
