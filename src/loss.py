@@ -71,25 +71,27 @@ class Loss:
         '''
 
         ####
-        labels = torch.ones(25)
-        labels[5] = 2
-        labels[10] = 3
-        reps = torch.rand(25, 50)
-        n_sample = len(reps)
-        ####
-
+        # DEBUG
+        # labels = torch.ones(25)
+        # labels[5] = 2
+        # labels[10] = 3
+        # reps = torch.rand(25, 50)
         # n_sample = len(reps)
-        # labels = oh_labels.argmax(dim=-1)
+        ####
+        device = self.cfg.device
+        reps = F.normalize(reps, p=2, dim=1)
+        n_sample = len(reps)
+        labels = oh_labels.argmax(dim=-1)
         uniques, counts = torch.unique(labels,return_counts=True)
         val2count = dict(zip(uniques.tolist(), counts.tolist()))
-        pairs = torch.triu_indices(n_sample, n_sample, offset=1)
+        pairs = torch.triu_indices(n_sample, n_sample, offset=1).to(device)
 
-        anchor_values = labels[pairs[0]]
-        candidate_values = labels[pairs[1]]
+        anchor_values = labels[pairs[0]].to(device)
+        candidate_values = labels[pairs[1]].to(device)
         mask = (anchor_values == candidate_values)
 
-        has_1 = (counts == 1).nonzero().squeeze(-1)
-        has_1 = uniques[has_1] # unique labels that have only 1 sample.
+        has_1 = (counts == 1).nonzero().squeeze(-1).to(device)
+        has_1 = uniques[has_1].to(device) # unique labels that have only 1 sample.
         if len(has_1) != 0:
             mask = mask & ~torch.isin(anchor_values, has_1)
 
@@ -97,19 +99,21 @@ class Loss:
         anchor_values = anchor_values[mask]
         anchor_values.apply_(val2count.get)
 
-        # res = -torch.ones_like(anchor_values) / (anchor_values - 1)
+        numerator = torch.exp(torch.sum(reps[pairs[0]] * reps[pairs[1]], dim=-1) / self.cfg.sc_temp).to(device)
 
-        numerator = torch.exp(reps[pairs[0]] * reps[pairs[1]] / self.cfg.sc_temp)
-
-        unique_anchor_idx = pairs[0].unique() # 22
+        unique_anchor_idx = pairs[0].unique().to(device) # 22
 
         temp = reps[unique_anchor_idx] # 22, 50
-        cached = temp.unsqueeze(1) * reps.unsqueeze(0)
-        print(cached.shape)
 
-        # cached =  #dict, anchor_idx -> denominator
+        cached = torch.matmul(temp, reps.T)
+        cached = torch.exp(cached / self.cfg.sc_temp) 
+        own = cached[torch.arange(len(unique_anchor_idx)), unique_anchor_idx] # 22
+        cached = torch.sum(cached, dim=1) - own # 22
 
-        # denominator = 
+        cached = {int(i.item()): cached[idx] for idx, i in enumerate(unique_anchor_idx)}
 
-        
-        input("HERE")
+        denominator = torch.stack([cached[k.item()] for k in pairs[0]]).to(device)
+
+        loss = torch.log(numerator / (denominator + 1e-6)) * (-1 / (anchor_values - 1))
+        loss = loss.sum()
+        return loss

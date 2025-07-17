@@ -23,6 +23,9 @@ LOWER_TEMP=2.0
 UPPER_TEMP=20.0
 LOSS_TRADEOFF=1.0
 
+SC_TEMP=1.0
+SC_WEIGHT=1.0
+
 python main.py \
   --dataset $DATASET \
   --save_path $SAVE_PATH \
@@ -43,4 +46,6 @@ python main.py \
   --graph_layers $GRAPH_LAYERS \
   --lower_temp $LOWER_TEMP \
   --upper_temp $UPPER_TEMP \
-  --loss_tradeoff $LOSS_TRADEOFF
+  --loss_tradeoff $LOSS_TRADEOFF \
+  --sc_temp $SC_TEMP \
+  --sc_weight $SC_WEIGHT

@@ -38,6 +38,7 @@ def parse_args():
     parser.add_argument('--loss_tradeoff', type=float, default=1.0)
 
     parser.add_argument('--sc_temp', type=float, default=1.0)
+    parser.add_argument('--sc_weight', type=float, default=1.0)
 
     args = parser.parse_args()
     

@@ -255,6 +255,7 @@ class Model(nn.Module):
         relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
 
         sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
+
         relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
         relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
         logits = self.bilinear(relation_rep)
@@ -270,6 +271,6 @@ class Model(nn.Module):
             kd_loss, current_tradeoff = self.loss.PSD_loss(logits, batch_teacher_logits, current_epoch)
 
 
-        loss = at_loss + kd_loss * current_tradeoff + sc_loss
+        loss = at_loss + current_tradeoff * kd_loss  + self.cfg.sc_weight * sc_loss
         return loss, torch.split(logits.detach().cpu(), num_rel_per_doc.tolist())
         
