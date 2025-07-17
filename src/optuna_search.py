@@ -14,6 +14,7 @@ def parse_args_from_trial(trial):
     args.save_path = "best.pt"
     args.log_path = "log.txt"
     args.seed = 2004
+    args.tqdm = False
 
     args.num_epoch = 20
     args.batch_size = 4

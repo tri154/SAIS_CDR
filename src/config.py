@@ -15,6 +15,7 @@ def parse_args():
     parser.add_argument('--save_path', type=str, help="file path to save model.", default='best.pt')
     parser.add_argument('--log_path', type=str, default='log.txt')
     parser.add_argument('--seed', type=int, default=2004)
+    parser.add_argument('--tqdm', action='store_true')
 
     parser.add_argument('--num_epoch', type=int, default=20)
     parser.add_argument('--batch_size', type=int, default=4)
