@@ -16,7 +16,7 @@ def parse_args_from_trial(trial):
     args.seed = 2004
     args.tqdm = False
 
-    args.num_epoch = 20
+    args.num_epoch = 30
     args.batch_size = 4
     args.update_freq = 1
     args.warmup_ratio = 0.06
