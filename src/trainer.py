@@ -16,6 +16,7 @@ class Trainer:
         self.model = model
         self.train_set = train_set
         self.tester = tester
+        self.cur_epoch = 0
 
         self.opt, self.sched = self.prepare_optimizer_scheduler()
 
@@ -35,7 +36,7 @@ class Trainer:
                 grouped_params['new_lr'].append(param)
 
         grouped_lrs = [{'params': grouped_params[group], 'lr': lr} for group, lr in zip(['pretrained_lr', 'new_lr'], [self.cfg.pretrained_lr, self.cfg.new_lr])]
-        opt = AdamW(grouped_lrs)
+        opt = AdamW(grouped_lrs, eps=self.cfg.adam_epsilon)
 
         num_updates = math.ceil(math.ceil(len(self.train_set) / self.cfg.batch_size) / self.cfg.update_freq) * self.cfg.num_epoch
         num_warmups = int(num_updates * self.cfg.warmup_ratio)
@@ -171,17 +172,19 @@ class Trainer:
         if train_set is not None:
             self.train_set = train_set
 
-        best_f1, best_epoch = 0, 0
+        self.best_f1 = 0
         for idx_epoch in range(num_epoches):
             print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
             self.train_one_epoch(idx_epoch, batch_size)
             presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
             print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
 
-            if f1 >= best_f1:
-                best_f1, best_epoch = f1, idx_epoch
+            if f1 >= self.best_f1:
+                self.best_f1 = f1
                 torch.save(self.model.state_dict(), self.cfg.save_path)
+            self.cur_epoch += 1
 
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
-        precision, recall, f1 = self.tester.test(self.model, dataset='test')
+        precision, recall, self.f1 = self.tester.test(self.model, dataset='test')
         print(f"Test result: P={precision}, R={recall}, F1={f1}")
+        return self.best_f1, self.f1
