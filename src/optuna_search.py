@@ -4,6 +4,10 @@ from main import run_training
 from config import Config
 
 def parse_args_from_trial(trial):
+    suggested_new_lr = trial.suggest_float("new_lr", 1e-5, 1e-3, log=True)
+    suggested_pretrained_lr = trial.suggest_float("pretrained_lr", 1e-5, 1e-3, log=True)
+    suggested_graph_layers = trial.suggest_int("graph_layers", 2, 5, log=True)
+
     args = argparse.Namespace()
 
     args.dataset = "cdr"
@@ -18,14 +22,14 @@ def parse_args_from_trial(trial):
     args.max_grad_norm = 1.0
 
     # Suggest hyperparameters with optuna
-    args.new_lr = trial.suggest_float("new_lr", 1e-5, 1e-3, log=True)
-    args.pretrained_lr = trial.suggest_float("pretrained_lr", 1e-5, 1e-3, log=True)
+    args.new_lr = suggested_new_lr
+    args.pretrained_lr = suggested_pretrained_lr
     args.adam_epsilon = 1e-6
 
     args.device = "cuda:0"
     args.transformer = "bert-base-cased"
     args.type_dim = 20
-    args.graph_layers = trial.suggest_int("graph_layers", 2, 5)
+    args.graph_layers = suggested_graph_layers
 
     args.lower_temp = 2.0
     args.upper_temp = 20.0
