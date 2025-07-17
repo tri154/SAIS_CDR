@@ -254,7 +254,9 @@ class Model(nn.Module):
         
         relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
 
-        sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
+        sc_loss = None
+        if is_training:
+            sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
 
         relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
         relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
