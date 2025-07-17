@@ -187,4 +187,4 @@ class Trainer:
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
         precision, recall, self.f1 = self.tester.test(self.model, dataset='test')
         print(f"Test result: P={precision}, R={recall}, F1={f1}")
-        return self.best_f1, self.f1
+        return self.best_f1
