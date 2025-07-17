@@ -42,7 +42,7 @@ def parse_args_from_trial(trial):
 def objective(trial):
     args = parse_args_from_trial(trial)
     cfg = Config(args)
-    val_score = run_training(cfg)
+    val_score = run_training(cfg, no_tqdm=True)
     return val_score
 
 if __name__ == '__main__':

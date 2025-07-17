@@ -147,7 +147,7 @@ class Trainer:
         for did, doc_idx in enumerate(range(indicies[0], indicies[1])):
             self.train_set[doc_idx]['teacher_logits'] = batch_logits[did]
 
-    def train_one_epoch(self, current_epoch, batch_size):
+    def train_one_epoch(self, current_epoch, batch_size, no_tqdm=False):
         self.model.train()
         self.opt.zero_grad()
 
@@ -156,7 +156,7 @@ class Trainer:
         num_batch = math.ceil(len(self.train_set) / batch_size)
 
 
-        for idx_batch, batch_input in enumerate(tqdm(self.prepare_batch(batch_size), total=num_batch, disable= not self.cfg.tqdm)):
+        for idx_batch, batch_input in enumerate(tqdm(self.prepare_batch(batch_size), total=num_batch, disable=no_tqdm)):
             batch_loss, batch_logits = self.model(batch_input, current_epoch=current_epoch, is_training=True)
             self.PSD_add_logits(batch_logits, batch_input['indices'])
             (batch_loss / self.cfg.update_freq).backward()
@@ -168,14 +168,14 @@ class Trainer:
                 self.sched.step()
 
 
-    def train(self, num_epoches, batch_size, train_set=None):
+    def train(self, num_epoches, batch_size, train_set=None, no_tqdm=False):
         if train_set is not None:
             self.train_set = train_set
 
         self.best_f1 = 0
         for idx_epoch in range(num_epoches):
             print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
-            self.train_one_epoch(idx_epoch, batch_size)
+            self.train_one_epoch(idx_epoch, batch_size, no_tqdm=no_tqdm)
             presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
             print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
 

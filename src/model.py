@@ -253,18 +253,23 @@ class Model(nn.Module):
         e_tw = e_tw.reshape(len(e_tw), -1) # 14, 1024
         
         relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
+
+        sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
         relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
         relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
         logits = self.bilinear(relation_rep)
 
-        if is_training:
-            at_loss = self.loss.AT_loss_original(logits, batch_labels)
-            kd_loss = torch.tensor(0.0)
-            current_tradeoff = 0.0
-            if batch_teacher_logits is not None:
-                kd_loss, current_tradeoff = self.loss.PSD_loss(logits, batch_teacher_logits, current_epoch)
-            loss = at_loss + kd_loss * current_tradeoff
-            return loss, torch.split(logits.detach().cpu(), num_rel_per_doc.tolist())
-        else:
+        if not is_training:
             return self.loss.AT_pred(logits), batch_labels
+            
+        at_loss = self.loss.AT_loss_original(logits, batch_labels)
+
+        kd_loss = torch.tensor(0.0)
+        current_tradeoff = 0.0
+        if batch_teacher_logits is not None:
+            kd_loss, current_tradeoff = self.loss.PSD_loss(logits, batch_teacher_logits, current_epoch)
+
+
+        loss = at_loss + kd_loss * current_tradeoff + sc_loss
+        return loss, torch.split(logits.detach().cpu(), num_rel_per_doc.tolist())
         
