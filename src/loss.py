@@ -96,8 +96,9 @@ class Loss:
             mask = mask & ~torch.isin(anchor_values, has_1)
 
         pairs = pairs[:, mask]
-        anchor_values = anchor_values[mask]
+        anchor_values = anchor_values[mask].cpu()
         anchor_values.apply_(val2count.get)
+        anchor_values = anchor_values.to(device)
 
         numerator = torch.exp(torch.sum(reps[pairs[0]] * reps[pairs[1]], dim=-1) / self.cfg.sc_temp).to(device)
 
