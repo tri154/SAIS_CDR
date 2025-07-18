@@ -5,9 +5,9 @@ from config import Config
 
 def parse_args_from_trial(trial):
     #NEED UPDATE
-    suggested_new_lr = trial.suggest_float("new_lr", 1e-5, 1e-3, log=True)
-    suggested_pretrained_lr = trial.suggest_float("pretrained_lr", 1e-5, 1e-3, log=True)
-    suggested_graph_layers = trial.suggest_int("graph_layers", 2, 5, log=True)
+    suggested_new_lr = trial.suggest_float("new_lr", 1e-5, 1e-4, log=True)
+    suggested_pretrained_lr = trial.suggest_float("pretrained_lr", 1e-5, 1e-4, log=True)
+    suggested_sc_temp = trial.suggest_float('sc_temp', 1.0, 2.0, log=True)
 
     args = argparse.Namespace()
 
@@ -15,7 +15,6 @@ def parse_args_from_trial(trial):
     args.save_path = "best.pt"
     args.log_path = "log.txt"
     args.seed = 2004
-    args.tqdm = False
 
     args.num_epoch = 30
     args.batch_size = 4
@@ -31,11 +30,14 @@ def parse_args_from_trial(trial):
     args.device = "cuda:0"
     args.transformer = "bert-base-cased"
     args.type_dim = 20
-    args.graph_layers = suggested_graph_layers
+    args.graph_layers = 4
 
     args.lower_temp = 2.0
     args.upper_temp = 20.0
     args.loss_tradeoff = 1.0
+
+    args.sc_temp = suggested_sc_temp
+    args.sc_weight = 1.0
 
     return args
 
