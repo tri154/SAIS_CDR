@@ -16,7 +16,7 @@ class Model(nn.Module):
         self.cfg = cfg
         self.transformer = Transformer(cfg)
         self.emb_size = emb_size
-        if cfg.transformer == 'bert-base-cased':
+        if 'bert' in cfg.transformer.lower():
             self.hidden_dim = 768 #NOTE: change if transformer changes.
         self.num_node_types = 3
 
