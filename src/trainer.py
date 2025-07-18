@@ -46,6 +46,7 @@ class Trainer:
 
     def prepare_batch(self, batch_size):
         inputs = self.train_set
+
         num_batch = math.ceil(len(inputs) / batch_size)
         device = self.cfg.device
 
@@ -177,15 +178,17 @@ class Trainer:
         for idx_epoch in range(num_epoches):
             print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
             self.train_one_epoch(idx_epoch, batch_size, no_tqdm=no_tqdm)
-            presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
-            print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
+            d_presicion, d_recall, d_f1 = self.tester.test(self.model, dataset='dev')
+            print(f"epoch: {idx_epoch}, P={d_presicion}, R={d_recall}, F1={d_f1}.")
+            t_presicion, t_recall, t_f1 = self.tester.test(self.model, dataset='test')
+            print(f"Test result: {idx_epoch}, P={t_presicion}, R={t_recall}, F1={t_f1}.")
 
-            if f1 >= self.best_f1_dev:
-                self.best_f1_dev = f1
+            if d_f1 >= self.best_f1_dev:
+                self.best_f1_dev = d_f1
                 torch.save(self.model.state_dict(), self.cfg.save_path)
             self.cur_epoch += 1
 
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
-        precision, recall, self.f1_test = self.tester.test(self.model, dataset='test')
-        print(f"Test result: P={precision}, R={recall}, F1={self.f1_test}")
+        self.precision_test, self.recall_test, self.f1_test = self.tester.test(self.model, dataset='test')
+        print(f"Test result: P={self.precision_test}, R={self.recall_test}, F1={self.f1_test}")
         return self.best_f1_dev
