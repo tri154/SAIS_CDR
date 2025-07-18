@@ -6,7 +6,7 @@ from config import Config
 def parse_args_from_trial(trial):
     #NEED UPDATE
     suggested_sc_temp = trial.suggest_float('sc_temp', 0.03, 1.0, log=True)
-    suggested_sc_weight = trial.suggest_floaT('sc_weight', 0.1, 5, log=True)
+    suggested_sc_weight = trial.suggest_float('sc_weight', 0.1, 5, log=True)
 
     args = argparse.Namespace()
 
