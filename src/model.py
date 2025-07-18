@@ -16,10 +16,12 @@ class Model(nn.Module):
         self.cfg = cfg
         self.transformer = Transformer(cfg)
         self.emb_size = emb_size
-        if "bert-base-cased" == cfg.transformers:
+
+        if "bert-base-cased" == cfg.transformer:
             self.hidden_dim = 768 #NOTE: change if transformer changes.
-        else "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract":
+        elif "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract" == cfg.transformer:
             self.hidden_dim = 768
+        
         self.num_node_types = 3
 
         self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
@@ -235,7 +237,7 @@ class Model(nn.Module):
 
         # Compute relation representation, need refactor.
 
-        gcn_nodes = torch.cat(gcn_nodes, dim=-1)
+        gcn_nodes = torch.cat([gcn_nodes[0], gcn_nodes[-1]], dim=-1)
         head_entities, tail_entities, batch_labels, offsets, num_rel_per_doc = self.get_entity_pairs(batch_epair_rels, num_entity_per_doc)
         entity_h = gcn_nodes[head_entities + offsets]
         entity_t = gcn_nodes[tail_entities + offsets]
