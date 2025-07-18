@@ -16,8 +16,10 @@ class Model(nn.Module):
         self.cfg = cfg
         self.transformer = Transformer(cfg)
         self.emb_size = emb_size
-        if 'bert' in cfg.transformer.lower():
+        if "bert-base-cased" == cfg.transformers:
             self.hidden_dim = 768 #NOTE: change if transformer changes.
+        else "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract":
+            self.hidden_dim = 768
         self.num_node_types = 3
 
         self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
