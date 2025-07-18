@@ -173,19 +173,19 @@ class Trainer:
         if train_set is not None:
             self.train_set = train_set
 
-        self.best_f1 = 0
+        self.best_f1_dev = 0
         for idx_epoch in range(num_epoches):
             print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
             self.train_one_epoch(idx_epoch, batch_size, no_tqdm=no_tqdm)
             presicion, recall, f1 = self.tester.test(self.model, dataset='dev')
             print(f"epoch: {idx_epoch}, P={presicion}, R={recall}, F1={f1}.")
 
-            if f1 >= self.best_f1:
-                self.best_f1 = f1
+            if f1 >= self.best_f1_dev:
+                self.best_f1_dev = f1
                 torch.save(self.model.state_dict(), self.cfg.save_path)
             self.cur_epoch += 1
 
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
-        precision, recall, self.f1 = self.tester.test(self.model, dataset='test')
-        print(f"Test result: P={precision}, R={recall}, F1={f1}")
-        return self.best_f1
+        precision, recall, self.f1_test = self.tester.test(self.model, dataset='test')
+        print(f"Test result: P={precision}, R={recall}, F1={self.f1_test}")
+        return self.best_f1_dev
