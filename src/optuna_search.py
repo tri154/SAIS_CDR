@@ -5,8 +5,8 @@ from config import Config
 
 def parse_args_from_trial(trial):
     #NEED UPDATE
-    suggested_sc_temp = trial.suggest_float('sc_temp', 1.0, 2.0, log=True)
-    suggested_sc_weight = trial.suggest_floaT('sc_weight', 0.03, 1.0, log=True)
+    suggested_sc_temp = trial.suggest_float('sc_temp', 0.03, 1.0, log=True)
+    suggested_sc_weight = trial.suggest_floaT('sc_weight', 0.1, 5, log=True)
 
     args = argparse.Namespace()
 
@@ -29,7 +29,7 @@ def parse_args_from_trial(trial):
     args.device = "cuda:0"
     args.transformer = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
     args.type_dim = 20
-    args.graph_layers = 1
+    args.graph_layers = 3
 
     args.use_psd = True
     args.lower_temp = 2.0
