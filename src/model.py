@@ -25,8 +25,14 @@ class Model(nn.Module):
         self.cnn = CNN(emb_size, device=self.cfg.device)
         self.ht_extractor = nn.Linear(emb_size*4, emb_size*2)
 
-        self.MIP_Linear1 = nn.Linear(emb_size * 5, emb_size * 4)
-        self.MIP_Linear2 = nn.Linear(emb_size * 4, emb_size * 2)
+
+        self.MIP_Linear = nn.Sequential(
+            nn.Linear(emb_size * 5, emb_size * 2),
+            nn.Dropout(0.1)
+        )
+        
+        # self.MIP_Linear1 = nn.Linear(emb_size * 5, emb_size * 4)
+        # self.MIP_Linear2 = nn.Linear(emb_size * 4, emb_size * 2)
         self.bilinear = nn.Linear(emb_size * 2, self.cfg.num_rel)
 
         self.loss = Loss(cfg)
@@ -254,12 +260,13 @@ class Model(nn.Module):
         
         relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
 
-        sc_loss = None
-        if is_training:
+        sc_loss = 0
+        if is_training and self.cfg.use_sc:
             sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
 
-        relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
-        relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
+        relation_rep = torch.tanh(self.MIP_Linear(relation_rep))
+        # relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
+        # relation_rep = torch.tanh(self.MIP_Linear2(relation_rep))
         logits = self.bilinear(relation_rep)
 
         if not is_training:

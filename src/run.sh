@@ -18,10 +18,12 @@ TRANSFORMER="bert-base-cased"
 TYPE_DIM=20
 GRAPH_LAYERS=4 #NOTE min=2
 
+USE_PSD=True
 LOWER_TEMP=2.0
 UPPER_TEMP=20.0
 LOSS_TRADEOFF=1.0
 
+USE_SC=True
 SC_TEMP=1.0
 SC_WEIGHT=1.0
 
@@ -42,8 +44,10 @@ python main.py \
   --transformer $TRANSFORMER \
   --type_dim $TYPE_DIM \
   --graph_layers $GRAPH_LAYERS \
+  --use_psd $USE_PSD \
   --lower_temp $LOWER_TEMP \
   --upper_temp $UPPER_TEMP \
   --loss_tradeoff $LOSS_TRADEOFF \
+  --use_sc $USE_SC \
   --sc_temp $SC_TEMP \
   --sc_weight $SC_WEIGHT

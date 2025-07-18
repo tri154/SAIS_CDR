@@ -32,10 +32,12 @@ def parse_args_from_trial(trial):
     args.type_dim = 20
     args.graph_layers = 4
 
+    args.use_psd = True
     args.lower_temp = 2.0
     args.upper_temp = 20.0
     args.loss_tradeoff = 1.0
 
+    args.use_sc = True
     args.sc_temp = suggested_sc_temp
     args.sc_weight = 1.0
 
