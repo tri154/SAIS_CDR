@@ -14,7 +14,7 @@ PRETRAINED_LR=5e-5
 ADAM_EPSILON=1e-6
 
 DEVICE="cuda:0"
-TRANSFORMER="bert-base-cased"
+TRANSFORMER="microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
 TYPE_DIM=20
 GRAPH_LAYERS=4 #NOTE min=2
 

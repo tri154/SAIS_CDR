@@ -112,7 +112,7 @@ class Config:
         torch.backends.cudnn.enabled = False
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-        
+        # torch.use_deterministic_algorithms(True, warn_only=True)
 
     def logging(self, text):
         with open(self.log_path, 'a') as file:

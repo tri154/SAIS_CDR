@@ -5,9 +5,8 @@ from config import Config
 
 def parse_args_from_trial(trial):
     #NEED UPDATE
-    suggested_new_lr = trial.suggest_float("new_lr", 1e-5, 1e-4, log=True)
-    suggested_pretrained_lr = trial.suggest_float("pretrained_lr", 1e-5, 1e-4, log=True)
     suggested_sc_temp = trial.suggest_float('sc_temp', 1.0, 2.0, log=True)
+    suggested_sc_weight = trial.suggest_floaT('sc_weight', 0.03, 1.0, log=True)
 
     args = argparse.Namespace()
 
@@ -23,23 +22,23 @@ def parse_args_from_trial(trial):
     args.max_grad_norm = 1.0
 
     # Suggest hyperparameters with optuna
-    args.new_lr = suggested_new_lr
-    args.pretrained_lr = suggested_pretrained_lr
+    args.new_lr = 1e-4
+    args.pretrained_lr = 1.472039003976042e-05
     args.adam_epsilon = 1e-6
 
     args.device = "cuda:0"
-    args.transformer = "bert-base-cased"
+    args.transformer = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
     args.type_dim = 20
-    args.graph_layers = 4
+    args.graph_layers = 1
 
     args.use_psd = True
     args.lower_temp = 2.0
     args.upper_temp = 20.0
-    args.loss_tradeoff = 1.0
+    args.loss_tradeoff = 4.999979907145212
 
     args.use_sc = True
     args.sc_temp = suggested_sc_temp
-    args.sc_weight = 1.0
+    args.sc_weight = suggested_sc_weight
 
     return args
 
