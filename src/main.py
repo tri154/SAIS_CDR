@@ -17,4 +17,4 @@ def run_training(cfg, no_tqdm=False):
 
 if __name__ == '__main__':
     cfg = Config()
-    run_training(cfg)
+    run_training(cfg, no_tqdm=True)

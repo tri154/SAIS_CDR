@@ -176,11 +176,15 @@ class Trainer:
 
         self.best_f1_dev = 0
         for idx_epoch in range(num_epoches):
+
             print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
+            self.cfg.logging(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
+
             self.train_one_epoch(idx_epoch, batch_size, no_tqdm=no_tqdm)
 
             d_presicion, d_recall, d_f1 = self.tester.test(self.model, dataset='dev')
-            print(f"epoch: {idx_epoch}, P={d_presicion}, R={d_recall}, F1={d_f1}.")
+            print(f"epoch: {idx_epoch}, Dev result: P={d_presicion}, R={d_recall}, F1={d_f1}.")
+            self.cfg.logging(f"epoch: {idx_epoch}, Dev result: P={d_presicion}, R={d_recall}, F1={d_f1}.")
             
             if d_f1 >= self.best_f1_dev:
                 self.best_f1_dev = d_f1
@@ -190,4 +194,6 @@ class Trainer:
         self.model.load_state_dict(torch.load(self.cfg.save_path, map_location=self.cfg.device))
         self.precision_test, self.recall_test, self.f1_test = self.tester.test(self.model, dataset='test')
         print(f"Test result: P={self.precision_test}, R={self.recall_test}, F1={self.f1_test}")
+        self.cfg.logging(f"Test result: P={self.precision_test}, R={self.recall_test}, F1={self.f1_test}")
+
         return self.best_f1_dev
