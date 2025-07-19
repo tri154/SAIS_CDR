@@ -53,4 +53,5 @@ if __name__ == '__main__':
     model = Model(cfg).to(cfg.device)
     model.load_state_dict(torch.load(args.model_pt, map_location=cfg.device))
     tester = Tester(cfg, dev_set=dev_set, test_set=test_set)
-    tester.test(model, dataset='test')
+    P, R, F1 = tester.test(model, dataset='test')
+    print(f"Test result: P={P}, R={R}, F1={F1}")
