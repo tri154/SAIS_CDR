@@ -182,9 +182,6 @@ class Trainer:
             d_presicion, d_recall, d_f1 = self.tester.test(self.model, dataset='dev')
             print(f"epoch: {idx_epoch}, P={d_presicion}, R={d_recall}, F1={d_f1}.")
             
-            t_presicion, t_recall, t_f1 = self.tester.test(self.model, dataset='test')
-            print(f"Test result: {idx_epoch}, P={t_presicion}, R={t_recall}, F1={t_f1}.")
-
             if d_f1 >= self.best_f1_dev:
                 self.best_f1_dev = d_f1
                 torch.save(self.model.state_dict(), self.cfg.save_path)
