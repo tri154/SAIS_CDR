@@ -1,3 +1,4 @@
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 DATASET="cdr"
 SAVE_PATH="best.pt"
 LOG_PATH="log.txt"
