@@ -178,8 +178,10 @@ class Trainer:
         for idx_epoch in range(num_epoches):
             print(f'epoch {idx_epoch}/{num_epoches} ' + '=' * 100)
             self.train_one_epoch(idx_epoch, batch_size, no_tqdm=no_tqdm)
+
             d_presicion, d_recall, d_f1 = self.tester.test(self.model, dataset='dev')
             print(f"epoch: {idx_epoch}, P={d_presicion}, R={d_recall}, F1={d_f1}.")
+            
             t_presicion, t_recall, t_f1 = self.tester.test(self.model, dataset='test')
             print(f"Test result: {idx_epoch}, P={t_presicion}, R={t_recall}, F1={t_f1}.")
 

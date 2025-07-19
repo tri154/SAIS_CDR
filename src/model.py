@@ -205,9 +205,7 @@ class Model(nn.Module):
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_token_embs = self.extractor_trans(batch_token_embs)
 
-        # DEMO
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
-        # DEMO
 
         batch_node_embs, nodes_type, num_per_type = self.compute_node_embs(batch_token_embs,
                                                                           batch_token_atts,
