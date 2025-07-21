@@ -51,8 +51,10 @@ class Trainer:
         device = self.cfg.device
 
         for idx_batch in range(num_batch):
-            indicies = (idx_batch * batch_size, (idx_batch + 1) * batch_size)
+            indicies = (idx_batch * batch_size, min((idx_batch + 1) * batch_size, len(inputs)))
+
             batch_inputs = inputs[indicies[0]:indicies[1]]
+            cur_batch_size = len(batch_inputs)
 
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
             batch_titles = list()
@@ -98,7 +100,7 @@ class Trainer:
 
             temp = []
             num_entity_per_doc = []
-            num_mention_per_doc = [0 for _ in range(self.cfg.batch_size)]
+            num_mention_per_doc = [0 for _ in range(cur_batch_size)]
             num_mention_per_entity = []
             for did, doc_start_mpos in enumerate(batch_start_mpos):
                 num_entity_per_doc.append(len(doc_start_mpos.values()))

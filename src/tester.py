@@ -17,8 +17,10 @@ class Tester:
         device = self.cfg.device
 
         for idx_batch in range(num_batch):
-            indicies = (idx_batch * batch_size, (idx_batch + 1) * batch_size)
+            indicies = (idx_batch * batch_size, min((idx_batch + 1) * batch_size, len(inputs)))
+
             batch_inputs = inputs[indicies[0]:indicies[1]]
+            cur_batch_size = len(batch_inputs)
 
             batch_token_seqs, batch_token_masks, batch_token_types = [], [], []
             batch_titles = list()
@@ -64,7 +66,7 @@ class Tester:
 
             temp = []
             num_entity_per_doc = []
-            num_mention_per_doc = [0 for _ in range(self.cfg.batch_size)]
+            num_mention_per_doc = [0 for _ in range(cur_batch_size)]
             num_mention_per_entity = []
             for did, doc_start_mpos in enumerate(batch_start_mpos):
                 num_entity_per_doc.append(len(doc_start_mpos.values()))
@@ -103,6 +105,7 @@ class Tester:
                     'batch_mentions_link': batch_mentions_link.to(device),
                     'batch_teacher_logits': batch_teacher_logits.to(device) if batch_teacher_logits is not None else None,
                     }
+
 
     def cal_f1(self, preds, labels, epsilon=1e-8):
         preds = preds.to(dtype=torch.int)

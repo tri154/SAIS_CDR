@@ -48,7 +48,7 @@ class Model(nn.Module):
 
 
     def compute_entity_embs(self, batch_token_embs, batch_start_mpos, num_entity_per_doc):
-        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1).to(self.cfg.device)
+        batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1).to(self.cfg.device)
         # batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative) #NOTE: can optimize.
         batch_entity_embs = batch_token_embs[batch_did, batch_start_mpos].logsumexp(dim=-2)
 
@@ -56,7 +56,7 @@ class Model(nn.Module):
 
     def compute_mention_embs(self, batch_token_embs, batch_start_mpos, num_mention_per_doc):
         batch_mention_pos = batch_start_mpos[batch_start_mpos != -1].flatten()
-        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_mention_per_doc).to(self.cfg.device)
+        batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_mention_per_doc).to(self.cfg.device)
         batch_mention_embs = batch_token_embs[batch_did, batch_mention_pos]
         
         return batch_mention_embs
@@ -64,7 +64,7 @@ class Model(nn.Module):
     def compute_sentence_embs(self, batch_token_embs, batch_token_atts, batch_sent_pos):
         batch_sent_embs = list()
 
-        for did in range(self.cfg.batch_size):
+        for did in range(self.cur_batch_size):
             doc_token_embs = batch_token_embs[did]
             doc_token_atts = batch_token_atts[did]
             doc_sent_pos = batch_sent_pos[did]
@@ -113,7 +113,7 @@ class Model(nn.Module):
         offset = num_per_type[0] + num_per_type[1]
         n_cumsum = torch.cumsum(torch.cat([torch.tensor([0]), num_sent_per_doc], dim=0), dim=0)
         start = []
-        for did in range(self.cfg.batch_size):
+        for did in range(self.cur_batch_size):
             temp = torch.arange(int(n_cumsum[did]), int(n_cumsum[did + 1]) - 1, device=device)
             start.append(temp)
 
@@ -146,7 +146,7 @@ class Model(nn.Module):
         relation_map = list()
         max_entity_per_doc = max(num_entity_per_doc)
         batch_entity_embs =  torch.split(gcn_nodes[-1][:torch.sum(num_entity_per_doc)], num_entity_per_doc.tolist())
-        for did in range(self.cfg.batch_size):
+        for did in range(self.cur_batch_size):
             doc_entity_embs = batch_entity_embs[did]
             e_s_map = torch.einsum('ij, jk -> jik', doc_entity_embs, doc_entity_embs.T).to(device)
             offset = max_entity_per_doc - num_entity_per_doc[did]
@@ -164,7 +164,7 @@ class Model(nn.Module):
         tail_entities = list()
         batch_labels = list()
 
-        for did in range(self.cfg.batch_size):
+        for did in range(self.cur_batch_size):
             doc_epair_rels = batch_epair_rels[did]
             for e_h, e_t in doc_epair_rels:
                 head_entities.append(e_h)
@@ -201,6 +201,7 @@ class Model(nn.Module):
         num_mention_per_entity = batch_input['num_mention_per_entity']
         num_sent_per_doc = batch_input['num_sent_per_doc']
         device = self.cfg.device
+        self.cur_batch_size = len(batch_token_seqs)
 
         batch_token_embs, batch_token_atts = self.transformer(batch_token_seqs, batch_token_masks, batch_token_types)
         batch_token_embs = self.extractor_trans(batch_token_embs)
@@ -241,12 +242,12 @@ class Model(nn.Module):
         entity_t = gcn_nodes[tail_entities + offsets]
         entity_ht = self.ht_extractor(torch.cat([entity_h, entity_t], dim=-1)) # 14, 1024
 
-        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_rel_per_doc).to(device)
+        batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_rel_per_doc).to(device)
         relation = relation_map[batch_did, :, head_entities, tail_entities] # 14, 512
         
         batch_token_atts = F.pad(batch_token_atts, ((0, 0, 0, 1)), value=0.0)
 
-        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1).to(device)
+        batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_entity_per_doc).unsqueeze(-1).to(device)
         batch_entity_att = batch_token_atts[batch_did, :, batch_start_mpos] #NOTE: might take lot of memory.
         batch_entity_att = torch.sum(batch_entity_att, dim=1) / (num_mention_per_entity.unsqueeze(-1).unsqueeze(-1) + 1e-5)
         batch_entity_att = batch_entity_att.mean(dim=1) # 16, 370 ,TESTED
@@ -255,7 +256,7 @@ class Model(nn.Module):
         batch_entity_att = pad_sequence(batch_entity_att, batch_first=True, padding_value = 0.0) # 4, max_num_e, 512
         batch_entity_att = torch.bmm(batch_entity_att, batch_token_embs[:, :-1])  # 4, max_e_num, 512
 
-        batch_did = torch.arange(self.cfg.batch_size).repeat_interleave(num_rel_per_doc).unsqueeze(-1).to(device)
+        batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_rel_per_doc).unsqueeze(-1).to(device)
         pair_entities = torch.stack([head_entities, tail_entities], dim=-1)
         e_tw = batch_entity_att[batch_did, pair_entities]
         e_tw = e_tw.reshape(len(e_tw), -1) # 14, 1024
