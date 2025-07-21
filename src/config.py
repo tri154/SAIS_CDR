@@ -100,6 +100,11 @@ class Config:
         if self.dataset == 'cdr':
             self.data_ner2word = {'CHEM': 'chemical', 'DISE': 'disease'}
             self.topk = 1
+        if self.dataset == 'gda':
+            self.data_ner2word = {'GENE': 'gene', 'DISE': 'disease'} # not really necessary
+            self.topk = 1
+        else:
+            raise Exception("Define topk, data_ner2word")
 
             
     def set_seed(self):
