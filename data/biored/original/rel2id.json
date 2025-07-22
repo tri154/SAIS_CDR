@@ -1,0 +1,10 @@
+{   "Na": 0, 
+    "Association": 1, 
+    "Positive_Correlation": 2, 
+    "Negative_Correlation": 3, 
+    "Bind": 4, 
+    "Drug_Interaction": 5, 
+    "Cotreatment": 6, 
+    "Comparison": 7, 
+    "Conversion": 8
+}
