@@ -5,8 +5,9 @@ LOG_PATH="log.txt"
 SEED=2004
 
 NUM_EPOCH=30
-BATCH_SIZE=4
-UPDATE_FREQ=1
+TRAIN_BATCH_SIZE=1
+TEST_BATCH_SIZE=4
+UPDATE_FREQ=4
 WARMUP_RATIO=0.06
 MAX_GRAD_NORM=1.0
 
@@ -35,7 +36,8 @@ python main.py \
   --log_path $LOG_PATH \
   --seed $SEED \
   --num_epoch $NUM_EPOCH \
-  --batch_size $BATCH_SIZE \
+  --train_batch_size $TRAIN_BATCH_SIZE \
+  --test_batch_size $TEST_BATCH_SIZE \
   --update_freq $UPDATE_FREQ \
   --warmup_ratio $WARMUP_RATIO \
   --max_grad_norm $MAX_GRAD_NORM \

@@ -38,7 +38,7 @@ class Trainer:
         grouped_lrs = [{'params': grouped_params[group], 'lr': lr} for group, lr in zip(['pretrained_lr', 'new_lr'], [self.cfg.pretrained_lr, self.cfg.new_lr])]
         opt = AdamW(grouped_lrs, eps=self.cfg.adam_epsilon)
 
-        num_updates = math.ceil(math.ceil(len(self.train_set) / self.cfg.batch_size) / self.cfg.update_freq) * self.cfg.num_epoch
+        num_updates = math.ceil(math.ceil(len(self.train_set) / self.cfg.train_batch_size) / self.cfg.update_freq) * self.cfg.num_epoch
         num_warmups = int(num_updates * self.cfg.warmup_ratio)
         sched = get_linear_schedule_with_warmup(opt, num_warmups, num_updates)
 
@@ -141,7 +141,7 @@ class Trainer:
                     }
 
     def debug(self):
-        for  batch_input in self.prepare_batch(self.cfg.batch_size):
+        for  batch_input in self.prepare_batch(self.cfg.train_batch_size):
             loss = self.model(batch_input, is_training=True)
             print(loss)
             input("Stop")

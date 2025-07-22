@@ -18,7 +18,8 @@ def parse_args():
     parser.add_argument('--tqdm', action='store_true')
 
     parser.add_argument('--num_epoch', type=int, default=20)
-    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--train_batch_size', type=int, default=4)
+    parser.add_argument('--test_batch_size', type=int, default=4)
     parser.add_argument('--update_freq', type=int, default=1, help="Gradient accumulation.") 
     parser.add_argument('--warmup_ratio', type=float, default=0.06, help="Warmup.")
     parser.add_argument("--max_grad_norm", type=float, default=1.0)

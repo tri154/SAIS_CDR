@@ -14,7 +14,8 @@ def setup():
     args.seed = 2004
 
     args.num_epoch = 30
-    args.batch_size = 4
+    args.train_batch_size = 4
+    args.test_batch_size = 4
     args.update_freq = 1
     args.warmup_ratio = 0.06
     args.max_grad_norm = 1.0

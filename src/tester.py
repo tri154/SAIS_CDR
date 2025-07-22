@@ -123,7 +123,7 @@ class Tester:
         all_preds = list()
         all_labels = list()
         with torch.no_grad():
-            for idx_batch, batch_inputs in enumerate(self.prepare_batch(self.cfg.batch_size, dataset)):
+            for idx_batch, batch_inputs in enumerate(self.prepare_batch(self.cfg.test_batch_size, dataset)):
                 batch_preds, batch_labels = model(batch_inputs, is_training=False)
                 all_preds.append(batch_preds)
                 all_labels.append(batch_labels)
