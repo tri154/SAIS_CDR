@@ -108,6 +108,7 @@ class Config:
             self.topk = 1
         else:
             raise Exception("Define topk, data_ner2word")
+            #set topk < 0 for multi classes.
 
             
     def set_seed(self):

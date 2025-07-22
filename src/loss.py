@@ -94,8 +94,8 @@ class Loss:
         has_1 = uniques[has_1].to(device) # unique labels that have only 1 sample.
         if len(has_1) != 0:
             mask = mask & ~torch.isin(anchor_values, has_1)
-        if len(mask) == 0: return 0
         pairs = pairs[:, mask]
+        if pairs.shape[-1] == 0: return 0
         anchor_values = anchor_values[mask].cpu()
         anchor_values.apply_(val2count.get)
         anchor_values = anchor_values.to(device)
