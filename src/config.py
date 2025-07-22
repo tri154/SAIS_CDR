@@ -102,17 +102,18 @@ class Config:
         if self.dataset == 'cdr':
             self.f1_type = 'binary'
             self.rel = 'CID' # main class to compute F1 binary.
-            self.topk = 1
+            self.topk = 1 # for AT_pred
 
             self.data_ner2word = {'CHEM': 'chemical', 'DISE': 'disease'} # not really necessary
         elif self.dataset == 'gda':
             self.f1_type = 'binary'
             self.rel = 'GDA' # main class to compute F1 binary.
-            self.topk = 1
+            self.topk = 1 # for AT_pred
 
             self.data_ner2word = {'GENE': 'gene', 'DISE': 'disease'} # not really necessary
         elif self.dataset == 'biored':
             self.f1_type = 'overall'
+            self.topk = 1 #for AT_pred
         else:
             raise Exception("Define topk, data_ner2word, f1_type")
             #set topk < 0 for multi classes.
