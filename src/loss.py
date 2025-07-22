@@ -28,12 +28,13 @@ class Loss:
         return loss
     
     def AT_pred(self, logits):
-        th_logit = logits[:, 0].unsqueeze(1)
+        th_logit = logits[:, self.cfg.id_rel_thre].unsqueeze(1)
         output = torch.zeros_like(logits).to(logits)
         mask = (logits > th_logit)
-        top_v, _ = torch.topk(logits, self.cfg.topk, dim=1)
-        top_v = top_v[:, -1]
-        mask = (logits >= top_v.unsqueeze(1)) & mask
+        if self.cfg.topk > 0:
+            top_v, _ = torch.topk(logits, self.cfg.topk, dim=1)
+            top_v = top_v[:, -1]
+            mask = (logits >= top_v.unsqueeze(1)) & mask
         output[mask] = 1.0
         output[:, 0] = (output.sum(1) == 0.).to(logits)
         return output

@@ -110,9 +110,10 @@ class Tester:
     def cal_f1(self, preds, labels, epsilon=1e-8):
         preds = preds.to(dtype=torch.int)
         labels = labels.to(dtype=torch.int)
-        tp = ((preds[:, 1] == 1) & (labels[:, 1] == 1)).to(dtype=torch.float32).sum()
-        fn = ((preds[:, 1] != 1) & (labels[:, 1] == 1)).to(dtype=torch.float32).sum()
-        fp = ((preds[:, 1] == 1) & (labels[:, 1] != 1)).to(dtype=torch.float32).sum()
+        class_id = self.cfg.data_rel2id[self.cfg.rel]
+        tp = ((preds[:, class_id] == 1) & (labels[:, class_id] == 1)).to(dtype=torch.float32).sum()
+        fn = ((preds[:, class_id] != 1) & (labels[:, class_id] == 1)).to(dtype=torch.float32).sum()
+        fp = ((preds[:, class_id] == 1) & (labels[:, class_id] != 1)).to(dtype=torch.float32).sum()
         precision = tp / (tp + fp + epsilon)
         recall = tp / (tp + fn + epsilon)
         f1 = 2 * precision * recall / (precision + recall + epsilon)
