@@ -54,8 +54,8 @@ class Config:
         args = parse_args() if args is None else args
         self.__dict__.update(vars(args))
 
-        self.use_psd = True if 'True' else False
-        self.use_sc = True if 'True' else False
+        self.use_psd = True if self.use_psd == 'True' else False
+        self.use_sc = True if self.use_sc == 'True' else False
 
         # process other configurations.
         self.set_seed()
