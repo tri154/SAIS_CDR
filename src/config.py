@@ -98,16 +98,19 @@ class Config:
         self.num_ner = len(self.data_ner2id)
         self.num_rel = len(self.data_rel2id)
 
+
         if self.dataset == 'cdr':
             self.rel = 'CID' # main class to compute F1.
             self.data_ner2word = {'CHEM': 'chemical', 'DISE': 'disease'}
             self.topk = 1
+            self.f1_type = 'binary'
         elif self.dataset == 'gda':
             self.rel = 'GDA' # main class to compute F1.
             self.data_ner2word = {'GENE': 'gene', 'DISE': 'disease'} # not really necessary
             self.topk = 1
+            self.f1_type = 'binary'
         else:
-            raise Exception("Define topk, data_ner2word")
+            raise Exception("Define topk, data_ner2word, f1_type")
             #set topk < 0 for multi classes.
 
             

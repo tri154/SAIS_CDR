@@ -10,6 +10,14 @@ class Tester:
         self.dev_set = dev_set
         self.test_set = test_set
 
+        self.cal_f1 = None
+        if cfg.f1_type == 'binary':
+            self.cal_f1 = self.cal_f1_binary
+        elif cfg.f1_type == 'overall':
+            self.cal_f1 = self.cal_f1_overall
+        else:
+            raise Exception("Define your F1 cal.")
+
     def prepare_batch(self, batch_size, dataset='dev'):
         inputs = self.test_set if dataset == 'test' else self.dev_set 
 
@@ -107,7 +115,7 @@ class Tester:
                     }
 
 
-    def cal_f1(self, preds, labels, epsilon=1e-8):
+    def cal_f1_binary(self, preds, labels, epsilon=1e-8):
         preds = preds.to(dtype=torch.int)
         labels = labels.to(dtype=torch.int)
         class_id = self.cfg.data_rel2id[self.cfg.rel]
@@ -117,6 +125,30 @@ class Tester:
         precision = tp / (tp + fp + epsilon)
         recall = tp / (tp + fn + epsilon)
         f1 = 2 * precision * recall / (precision + recall + epsilon)
+        return precision, recall, f1
+
+    def cal_f1_overall(self, preds, labels, num_classes=9, ignore_index=0, epsilon=1e-8):
+        preds = torch.argmax(preds, dim=1).to(dtype=torch.int)
+        labels = torch.argmax(labels, dim=1).to(dtype=torch.int)
+    
+        total_tp, total_fp, total_fn = 0, 0, 0
+    
+        for cls in range(num_classes):
+            if cls == ignore_index:
+                continue  # Bỏ qua nhãn 0
+    
+            tp = ((preds == cls) & (labels == cls)).sum().item()
+            fp = ((preds == cls) & (labels != cls)).sum().item()
+            fn = ((preds != cls) & (labels == cls)).sum().item()
+    
+            total_tp += tp
+            total_fp += fp
+            total_fn += fn
+    
+        precision = total_tp / (total_tp + total_fp + epsilon)
+        recall = total_tp / (total_tp + total_fn + epsilon)
+        f1 = 2 * precision * recall / (precision + recall + epsilon)
+    
         return precision, recall, f1
         
     def test(self, model, dataset='dev'):
