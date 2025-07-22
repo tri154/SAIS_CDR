@@ -127,14 +127,14 @@ class Tester:
         f1 = 2 * precision * recall / (precision + recall + epsilon)
         return precision, recall, f1
 
-    def cal_f1_overall(self, preds, labels, num_classes=9, ignore_index=0, epsilon=1e-8):
+    def cal_f1_overall(self, preds, labels, epsilon=1e-8):
         preds = torch.argmax(preds, dim=1).to(dtype=torch.int)
         labels = torch.argmax(labels, dim=1).to(dtype=torch.int)
     
         total_tp, total_fp, total_fn = 0, 0, 0
     
-        for cls in range(num_classes):
-            if cls == ignore_index:
+        for cls in range(self.cfg.num_rel):
+            if cls == self.cfg.id_rel_thre:
                 continue  # Bỏ qua nhãn 0
     
             tp = ((preds == cls) & (labels == cls)).sum().item()
