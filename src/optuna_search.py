@@ -29,6 +29,8 @@ def parse_args_from_trial(trial):
 
     args.device = "cuda:0"
     args.transformer = "microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
+    args.seq_process_type = "sd"
+
     args.type_dim = 20
     args.graph_layers = 3
 

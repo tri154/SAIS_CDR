@@ -17,6 +17,8 @@ ADAM_EPSILON=1e-6
 
 DEVICE="cuda:0"
 TRANSFORMER="microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
+SEQ_PROCESS_TYPE="sd"
+
 TYPE_DIM=20
 GRAPH_LAYERS=3 #NOTE min=2
 
@@ -46,6 +48,7 @@ python main.py \
   --adam_epsilon $ADAM_EPSILON \
   --device $DEVICE \
   --transformer $TRANSFORMER \
+  --seq_process_type $SEQ_PROCESS_TYPE\
   --type_dim $TYPE_DIM \
   --graph_layers $GRAPH_LAYERS \
   --use_psd $USE_PSD \

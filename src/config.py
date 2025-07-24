@@ -30,6 +30,7 @@ def parse_args():
 
     parser.add_argument('--device', type=str, default='cuda:0')
     parser.add_argument('--transformer', type=str, default='bert-base-cased')
+    parser.add_argument('--seq_process_type', type=str, default='sd', help='choose type of sequence prcess, sd: sliding windows, o: original (as SAIS)')
 
     parser.add_argument('--type_dim', type=int, default=20)
     parser.add_argument('--graph_layers', type=int, default=2, help='min = 2')
@@ -100,18 +101,21 @@ class Config:
 
 
         if self.dataset == 'cdr':
+            self.logging("Dataset: CDR, use binary F1.")
             self.f1_type = 'binary'
             self.rel = 'CID' # main class to compute F1 binary.
             self.topk = 1 # for AT_pred
 
             self.data_ner2word = {'CHEM': 'chemical', 'DISE': 'disease'} # not really necessary
         elif self.dataset == 'gda':
+            self.logging("Dataset: GDA, use binary F1.")
             self.f1_type = 'binary'
             self.rel = 'GDA' # main class to compute F1 binary.
             self.topk = 1 # for AT_pred
 
             self.data_ner2word = {'GENE': 'gene', 'DISE': 'disease'} # not really necessary
         elif self.dataset == 'biored':
+            self.logging("Dataset: BioRED, use overall F1.")
             self.f1_type = 'overall'
             self.topk = 1 #for AT_pred
         else:

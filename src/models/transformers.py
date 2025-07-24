@@ -234,8 +234,9 @@ class Transformer(nn.Module):
         return batch_token_embs, batch_token_atts
 
 
-    def forward(self, batch_token_seqs, batch_token_masks, batch_token_types, use_original=False):
-        if use_original:
+    def forward(self, batch_token_seqs, batch_token_masks, batch_token_types):
+        if self.cfg.seq_process_type == 'sd':
+            return self.forward_sd(batch_token_seqs, batch_token_masks, batch_token_types, stride=128)
+        elif self.cfg.seq_process_type == 'o':
             return self.forward_o(batch_token_seqs, batch_token_masks, batch_token_types)
-        return self.forward_sd(batch_token_seqs, batch_token_masks, batch_token_types, stride=128)
 
