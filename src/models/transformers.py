@@ -20,6 +20,7 @@ class Transformer(nn.Module):
         self.start_token_len, self.end_token_len = 1, 1
         self.start_token_ids = torch.Tensor([self.tokenizer.cls_token_id]).to(cfg.device)
         self.end_token_ids = torch.Tensor([self.tokenizer.sep_token_id]).to(cfg.device)
+        self.pad_token_ids = self.tokenizer.pad_token_id
 
 
     def forward_o(self, batch_token_seqs, batch_token_masks, batch_token_types):
