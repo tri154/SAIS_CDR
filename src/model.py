@@ -75,7 +75,7 @@ class Model(nn.Module):
                 sent_token_atts = doc_token_atts[:, start:end, start:end]
 
                 sent_token_atts = sent_token_atts.mean(dim=(1, 0))
-                sent_token_atts = sent_token_atts / sent_token_atts.sum(0)
+                sent_token_atts = sent_token_atts / (sent_token_atts.sum(0) / self.cfg.small_positive)
                 batch_sent_embs.append(sent_token_atts @ sent_token_embs)
 
         batch_sent_embs = torch.stack(batch_sent_embs).to(self.cfg.device)
