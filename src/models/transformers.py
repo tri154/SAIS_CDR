@@ -116,8 +116,8 @@ class Transformer(nn.Module):
         for did, num_token in enumerate(num_token_per_doc):
             if num_token <= self.max_num_tokens:
                 token_seqs.append(batch_token_seqs[did, :self.max_num_tokens])
-                token_masks.append(batch_token_seqs[did, :self.max_num_tokens])
-                token_types.append(batch_token_seqs[did, :self.max_num_tokens])
+                token_masks.append(batch_token_masks[did, :self.max_num_tokens])
+                token_types.append(batch_token_types[did, :self.max_num_tokens])
                 num_seg_per_doc.append(1)
                 valids.append((-1, -1)) # not contribute
                 continue
