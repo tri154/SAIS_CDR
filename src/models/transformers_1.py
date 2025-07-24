@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import AutoConfig, AutoModel, AutoTokenizer
+import numpy as np
 
 class Transformer(nn.Module):
     def __init__(self, cfg):
@@ -184,13 +185,6 @@ class Transformer(nn.Module):
         batch_token_masks = torch.stack(token_masks).float()
         batch_token_types = torch.stack(token_types).long()
 
-        # print(batch_token_seqs.shape) #torch.Size([4, 512])
-        # print(batch_token_masks.shape) #torch.Size([4, 512])
-        # print(batch_token_types.shape) #torch.Size([4, 512])
-        # print(num_seg_per_doc) #torch.Size([4])
-        # print(valids)
-        # input("HERE")
-
         batch_output = self.transformer(input_ids=batch_token_seqs,
                                         attention_mask=batch_token_masks,
                                         token_type_ids=batch_token_types,
@@ -242,9 +236,6 @@ class Transformer(nn.Module):
 
         batch_token_embs = torch.stack(batch_token_embs)
         batch_token_atts = torch.stack(batch_token_atts)
-        print(batch_token_embs.shape)
-        print(batch_token_atts.shape)
-        input("HERE")
         return batch_token_embs, batch_token_atts
 
                         

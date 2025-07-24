@@ -15,7 +15,8 @@ NEW_LR=1e-4
 PRETRAINED_LR=1.472039003976042e-05
 ADAM_EPSILON=1e-6
 
-DEVICE="cuda:0"
+# DEVICE="cuda:0"
+DEVICE="cpu"
 TRANSFORMER="microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract"
 TYPE_DIM=20
 GRAPH_LAYERS=3 #NOTE min=2

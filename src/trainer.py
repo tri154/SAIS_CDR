@@ -141,7 +141,7 @@ class Trainer:
                     }
 
     def debug(self):
-        for  batch_input in self.prepare_batch(self.cfg.train_batch_size):
+        for batch_input in self.prepare_batch(self.cfg.train_batch_size):
             loss = self.model(batch_input, is_training=True)
             print(loss)
             input("Stop")

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from loss import Loss
 from torch_geometric.utils import to_undirected
 from torch.nn.utils.rnn import pad_sequence
-from models.transformers import Transformer
+from models.transformers_1 import Transformer
 from models.rgcn import RGCN
 from models.cnn import CNN
 
@@ -70,15 +70,22 @@ class Model(nn.Module):
             doc_sent_pos = batch_sent_pos[did]
 
             for sid in sorted(doc_sent_pos): # keep sentence order.
+                print(sid)
                 start, end = doc_sent_pos[sid]
                 sent_token_embs = doc_token_embs[start:end]
                 sent_token_atts = doc_token_atts[:, start:end, start:end]
 
+                print(sent_token_atts)
                 sent_token_atts = sent_token_atts.mean(dim=(1, 0))
-                sent_token_atts = sent_token_atts / sent_token_atts.sum(0)
+                sent_token_atts = sent_token_atts / (sent_token_atts.sum(0)) # it might start from here. or transformers
+                print((f"{sid}, {self.check_nan(sent_token_embs)}"))
+                print((f"{sid}, {self.check_nan(sent_token_atts)}"))
+                input("here")
+
                 batch_sent_embs.append(sent_token_atts @ sent_token_embs)
 
         batch_sent_embs = torch.stack(batch_sent_embs).to(self.cfg.device)
+        input("END HERE")
         return batch_sent_embs
 
     def compute_node_embs(self,
@@ -90,13 +97,18 @@ class Model(nn.Module):
                           num_mention_per_doc,):
         device = self.cfg.device
         batch_entity_embs = self.compute_entity_embs(batch_token_embs, batch_start_mpos, num_entity_per_doc)
+        print((f"{0}, {self.check_nan(batch_entity_embs)}"))
         batch_mention_embs = self.compute_mention_embs(batch_token_embs, batch_start_mpos, num_mention_per_doc)
+        print((f"{1}, {self.check_nan(batch_mention_embs)}"))
         batch_sent_embs = self.compute_sentence_embs(batch_token_embs, batch_token_atts, batch_sent_pos)
+        print((f"{2}, {self.check_nan(batch_sent_embs)}"))
 
         batch_node_embs = [batch_entity_embs, batch_mention_embs, batch_sent_embs]
         num_per_type = [len(type) for type in batch_node_embs]
         nodes_type = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
         batch_node_embs = torch.cat(batch_node_embs, dim=0)
+        print((f"{3}, {self.check_nan(batch_node_embs)}"))
+        input("HERE")
 
         return batch_node_embs, nodes_type, num_per_type
 
@@ -184,6 +196,9 @@ class Model(nn.Module):
         
         return head_entities, tail_entities, batch_labels, offsets, num_rel_per_doc # reuse
         
+    def check_nan(self, ts):
+        is_nan = torch.isnan(ts).any().item()
+        return is_nan
     
     def forward(self, batch_input, current_epoch=None, is_training=False):
         batch_token_seqs = batch_input['batch_token_seqs']
