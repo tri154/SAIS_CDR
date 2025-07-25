@@ -31,7 +31,7 @@ class Model(nn.Module):
 
 
         self.MIP_Linear = nn.Sequential(
-            nn.Linear(emb_size * 5, emb_size * 2),
+            nn.Linear(emb_size * 4, emb_size * 2),
             nn.Dropout(0.1)
         )
         
