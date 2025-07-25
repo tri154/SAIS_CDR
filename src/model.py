@@ -6,7 +6,7 @@ from torch_geometric.utils import to_undirected
 from torch.nn.utils.rnn import pad_sequence
 from models.transformers import Transformer
 from models.rgcn import RGCN
-from models.cnn import CNN
+# from models.cnn import CNN
 
 
 class Model(nn.Module):
@@ -26,7 +26,7 @@ class Model(nn.Module):
 
         self.extractor_trans = nn.Linear(self.hidden_dim, emb_size)
         self.rgcn = RGCN(emb_size, emb_size, num_relations=4, num_node_type=3, type_dim=self.cfg.type_dim, num_layers=self.cfg.graph_layers)
-        self.cnn = CNN(emb_size, device=self.cfg.device)
+        # self.cnn = CNN(emb_size, device=self.cfg.device)
         self.ht_extractor = nn.Linear(emb_size*4, emb_size*2)
 
 
@@ -231,8 +231,8 @@ class Model(nn.Module):
 
         gcn_nodes = self.rgcn(batch_node_embs, nodes_type, edges, edges_type)
 
-        relation_map = self.get_relation_map(gcn_nodes, num_entity_per_doc)
-        relation_map = self.cnn(relation_map) # 4, 512, n_e_max, n_e_max
+        # relation_map = self.get_relation_map(gcn_nodes, num_entity_per_doc)
+        # relation_map = self.cnn(relation_map) # 4, 512, n_e_max, n_e_max
 
         # Compute relation representation, need refactor.
 
@@ -242,8 +242,8 @@ class Model(nn.Module):
         entity_t = gcn_nodes[tail_entities + offsets]
         entity_ht = self.ht_extractor(torch.cat([entity_h, entity_t], dim=-1)) # 14, 1024
 
-        batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_rel_per_doc).to(device)
-        relation = relation_map[batch_did, :, head_entities, tail_entities] # 14, 512
+        # batch_did = torch.arange(self.cur_batch_size).repeat_interleave(num_rel_per_doc).to(device)
+        # relation = relation_map[batch_did, :, head_entities, tail_entities] # 14, 512
         
         batch_token_atts = F.pad(batch_token_atts, ((0, 0, 0, 1)), value=0.0)
 
@@ -261,7 +261,8 @@ class Model(nn.Module):
         e_tw = batch_entity_att[batch_did, pair_entities]
         e_tw = e_tw.reshape(len(e_tw), -1) # 14, 1024
         
-        relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
+        # relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
+        relation_rep = torch.cat([e_tw, entity_ht], dim=-1)
 
         sc_loss = 0
         if is_training and self.cfg.use_sc:
