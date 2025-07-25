@@ -98,7 +98,7 @@ class Model(nn.Module):
         nodes_type = torch.arange(self.num_node_types, device=device).repeat_interleave(torch.tensor([len(nodes) for nodes in batch_node_embs], device=device))
         batch_node_embs = torch.cat(batch_node_embs, dim=0)
 
-        return batch_node_embs, nodes_type, num_per_type
+        return batch_node_embs, nodes_type, num_per_type, batch_mention_embs
 
 
     def get_entity_mention_link(self, num_mention_per_entity, num_per_type):
@@ -106,7 +106,7 @@ class Model(nn.Module):
         entity = torch.arange(len(num_mention_per_entity), device=device).repeat_interleave(num_mention_per_entity)
         mention = torch.arange(num_per_type[0], num_per_type[0] + num_per_type[1], device=device)
         entity_mention_links = torch.stack([entity, mention]).to(device)
-        return to_undirected(entity_mention_links)
+        return to_undirected(entity_mention_links), entity
 
     def get_sentence_sentence_link(self, num_sent_per_doc, num_per_type):
         device = self.cfg.device
@@ -208,7 +208,7 @@ class Model(nn.Module):
 
         batch_token_embs = F.pad(batch_token_embs, (0, 0, 0, 1), value=self.cfg.small_negative)
 
-        batch_node_embs, nodes_type, num_per_type = self.compute_node_embs(batch_token_embs,
+        batch_node_embs, nodes_type, num_per_type, batch_mention_embs = self.compute_node_embs(batch_token_embs,
                                                                           batch_token_atts,
                                                                           batch_start_mpos,
                                                                           batch_sent_pos,
@@ -220,7 +220,11 @@ class Model(nn.Module):
         # doc1_e1_mention_1, doc1_e1_mention2, ...
         # doc1_sent1, doc1_sent2, ...
 
-        ent_ment_links = self.get_entity_mention_link(num_mention_per_entity, num_per_type) # TODO: move links to preprocessing for performance.
+        ent_ment_links, entity_labels = self.get_entity_mention_link(num_mention_per_entity, num_per_type) # TODO: move links to preprocessing for performance.
+        sc_loss = 0
+        if is_training and self.cfg.use_sc:
+            sc_loss = self.loss.SC_loss(batch_mention_embs, entity_labels, is_onehot=False)
+
         sent_sent_links = self.get_sentence_sentence_link(num_sent_per_doc, num_per_type)
         ment_sent_links = self.get_ment_sent_link(batch_mpos2sid, num_sent_per_doc, num_mention_per_doc, num_per_type)
         ment_ment_links = self.get_ment_ment_link(batch_mentions_link, num_mentlink_per_doc, num_mention_per_doc, num_per_type)
@@ -263,9 +267,9 @@ class Model(nn.Module):
         
         relation_rep = torch.cat([relation, e_tw, entity_ht], dim=-1)
 
-        sc_loss = 0
-        if is_training and self.cfg.use_sc:
-            sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
+        # sc_loss = 0
+        # if is_training and self.cfg.use_sc:
+        #     sc_loss = self.loss.SC_loss(relation_rep, batch_labels)
 
         relation_rep = torch.tanh(self.MIP_Linear(relation_rep))
         # relation_rep = torch.tanh(self.MIP_Linear1(relation_rep))
