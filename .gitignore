@@ -1,0 +1,6 @@
+**/__pycache__
+pyrefly.toml
+**/cached.pkl
+outputs/**
+Data/**
+wandb/**
