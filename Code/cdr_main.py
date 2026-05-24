@@ -343,10 +343,6 @@ def main():
     best_f1, best_epoch = 0, 0
     for idx_epoch in range(args.num_epoch):
 
-        # DEBUG
-        epoch_f1 = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=False, rej_rate=0, all_shifts=None)
-        print(f"Testing purpose, F1 = {epoch_f1}")
-        # DEBUG
         train(args, info, idx_epoch, inputs_train, model, optimizer, scheduler)
         epoch_f1 = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=False, rej_rate=0, all_shifts=None)
 
