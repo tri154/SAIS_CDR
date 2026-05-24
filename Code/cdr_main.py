@@ -111,16 +111,12 @@ def test(args, info, mode, inputs, tokenizer, model, if_final=False, rej_rate=0,
     preds = all_first_predictions.cpu().numpy()
     golds = all_relations.cpu().numpy()
 
-    # tp = ((preds[:, 1] == 1) & (golds[:, 1] == 1)).astype(np.float32).sum()
-    # tn = ((golds[:, 1] == 1) & (preds[:, 1] != 1)).astype(np.float32).sum()
-    # fp = ((preds[:, 1] == 1) & (golds[:, 1] != 1)).astype(np.float32).sum()
-    # precision = tp / (tp + fp + 1e-5)
-    # recall = tp / (tp + tn + 1e-5)
-    # f1 = 2 * precision * recall / (precision + recall + 1e-5)
-    # print(f1)
-    _, _, f1 = cal_f1(golds, preds)
-    # print(f1)
-    # breakpoint()
+    tp = ((preds[:, 1] == 1) & (golds[:, 1] == 1)).astype(np.float32).sum()
+    tn = ((golds[:, 1] == 1) & (preds[:, 1] != 1)).astype(np.float32).sum()
+    fp = ((preds[:, 1] == 1) & (golds[:, 1] != 1)).astype(np.float32).sum()
+    precision = tp / (tp + fp + 1e-5)
+    recall = tp / (tp + tn + 1e-5)
+    f1 = 2 * precision * recall / (precision + recall + 1e-5)
 
     return f1
 
