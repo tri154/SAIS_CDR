@@ -205,8 +205,8 @@ def prepare_batch_train(info, inputs, batch_size):
 
             max_epair_tids = max([len(tids) for tids in doc_input.eid2tids.values()])
             doc_epair_tids, doc_epair_types, doc_epair_masks, doc_epair_relations, doc_epair_pooled_evidences, doc_epair_finegrained_evidences, doc_num_epairs_per_doc = [], [], [], [], [], [], 0
-            for eid_i, eid_j in permutations(doc_input.eid2etype, 2):
-            # for eid_i, eid_j in doc_input.eids2rid2sids.keys():
+            # for eid_i, eid_j in permutations(doc_input.eid2etype, 2):
+            for eid_i, eid_j in doc_input.eids2rid2sids.keys():
                 doc_num_epairs_per_doc += 1
                 doc_epair_types.append((doc_input.eid2etype[eid_i], doc_input.eid2etype[eid_j]))
 
@@ -304,10 +304,10 @@ def prepare_batch_test(info, inputs, batch_size, infer_round, preds=None):
             if infer_round == info.INFER_ROUND_FER: batch_num_sents_per_doc.append(len(doc_input.sid2tids))
 
             if infer_round == info.INFER_ROUND_FIRST:
-                epair2rids = [[epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in permutations(doc_input.eid2etype, 2)]
-                # epair2rids = [
-                #     [epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in doc_input.eids2rid2sids.keys()
-                # ]
+                # epair2rids = [[epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in permutations(doc_input.eid2etype, 2)]
+                epair2rids = [
+                    [epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in doc_input.eids2rid2sids.keys()
+                ]
             elif infer_round == info.INFER_ROUND_FER:
                 epair2rids = [[epair, list(rids.keys())] for epair, rids in preds[doc_title].items()]
             elif infer_round == info.INFER_ROUND_MASK:
