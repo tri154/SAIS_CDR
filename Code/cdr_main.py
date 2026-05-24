@@ -360,6 +360,7 @@ def main():
     myprint('-'*20, info.FILE_STDOUT)
     test_f1 = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=True, rej_rate=0, all_shifts=None)
     print(f"Test result: {test_f1}")
+    return
 
 
     rej_rate, all_shifts = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=True, rej_rate=0, all_shifts=None)
