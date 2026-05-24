@@ -97,9 +97,27 @@ def test(args, info, mode, inputs, tokenizer, model, if_final=False, rej_rate=0,
 
             _, batch_preds = model(batch_tasks, batch_inputs, to_evaluate=False, to_predict=True)
             batch_triplets, batch_relations, batch_first_predictions = feed_batch(info, batch_inputs, batch_preds, infer_round)
-            all_triplets += batch_triplets; all_relations.append(batch_relations); all_first_predictions.append(batch_first_predictions)
+            all_triplets += batch_triplets;
+            all_relations.append(batch_relations);
+            all_first_predictions.append(batch_first_predictions)
 
     all_relations, all_first_predictions = torch.cat(all_relations).bool(), torch.cat(all_first_predictions)
+
+    # FOR CDR
+    preds = all_first_predictions.cpu().numpy()
+    golds = all_relations.cpu().numpy()
+
+    tp = ((preds[:, 1] == 1) & (golds[:, 1] == 1)).astype(np.float32).sum()
+    tn = ((golds[:, 1] == 1) & (preds[:, 1] != 1)).astype(np.float32).sum()
+    fp = ((preds[:, 1] == 1) & (golds[:, 1] != 1)).astype(np.float32).sum()
+    precision = tp / (tp + fp + 1e-5)
+    recall = tp / (tp + tn + 1e-5)
+    f1 = 2 * precision * recall / (precision + recall + 1e-5)
+
+    return f1
+
+    # FOR CDR
+
 
     if not if_final:
         all_first_P, all_first_R, all_first_F1 = cal_f1(all_relations, model.loss_module.pred_RE_results(all_first_predictions))
@@ -325,8 +343,11 @@ def main():
     best_f1, best_epoch = 0, 0
     for idx_epoch in range(args.num_epoch):
 
+        # DEBUG
+        epoch_f1 = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=False, rej_rate=0, all_shifts=None)
+        print(f"Testing purpose, F1 = {epoch_f1}")
+        # DEBUG
         train(args, info, idx_epoch, inputs_train, model, optimizer, scheduler)
-        # FIX: bo cac phan khong can trong test, sua ham tinh F1
         epoch_f1 = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=False, rej_rate=0, all_shifts=None)
 
         if epoch_f1 >= best_f1:
@@ -340,6 +361,9 @@ def main():
     model.load_state_dict(torch.load(f'{info.FILE_MODEL}', map_location=info.DEVICE_GPU))
     myprint(f'Load the Model from Epoch {best_epoch} with {info.MODE_DEV} F1 {best_f1:.4f}', info.FILE_STDOUT)
     myprint('-'*20, info.FILE_STDOUT)
+    test_f1 = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=True, rej_rate=0, all_shifts=None)
+    print(f"Test result: {test_f1}")
+
 
     rej_rate, all_shifts = test(args, info, info.MODE_DEV, inputs_dev, tokenizer, model, if_final=True, rej_rate=0, all_shifts=None)
     test(args, info, info.MODE_TEST, inputs_test, tokenizer, model, if_final=True, rej_rate=rej_rate, all_shifts=all_shifts)

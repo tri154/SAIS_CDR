@@ -2,5 +2,5 @@
 pyrefly.toml
 **/cached.pkl
 outputs/**
-# Data/**
+Data/**
 wandb/**

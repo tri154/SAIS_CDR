@@ -304,7 +304,10 @@ def prepare_batch_test(info, inputs, batch_size, infer_round, preds=None):
             if infer_round == info.INFER_ROUND_FER: batch_num_sents_per_doc.append(len(doc_input.sid2tids))
 
             if infer_round == info.INFER_ROUND_FIRST:
-                epair2rids = [[epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in permutations(doc_input.eid2etype, 2)]
+                # epair2rids = [[epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in permutations(doc_input.eid2etype, 2)]
+                epair2rids = [
+                    [epair, list(doc_input.eids2rid2sids[epair].keys())] for epair in doc_input.eids2rid2sids.keys()
+                ]
             elif infer_round == info.INFER_ROUND_FER:
                 epair2rids = [[epair, list(rids.keys())] for epair, rids in preds[doc_title].items()]
             elif infer_round == info.INFER_ROUND_MASK:
