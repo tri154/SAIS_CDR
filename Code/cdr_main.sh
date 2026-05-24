@@ -18,7 +18,7 @@ loss_weight_ET=0.1
 loss_weight_PER=0.1
 loss_weight_FER=0.1
 
-num_epoch=20
+num_epoch=30
 batch_size=4
 update_freq=1
 
