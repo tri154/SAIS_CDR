@@ -2,13 +2,13 @@
 
 stage="Main"
 dataset="cdr"
-seed=2021
+seed=62
 
 transformer="allenai/scibert_scivocab_uncased" # "roberta-large"
 hidden_size=768
 bilinear_block_size=64
 
-RE_max=4
+RE_max=1
 CR_focal_gamma=2
 PER_focal_gamma=2
 FER_threshold=0.5
