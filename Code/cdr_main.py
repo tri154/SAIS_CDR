@@ -102,6 +102,7 @@ def test(args, info, mode, inputs, tokenizer, model, if_final=False, rej_rate=0,
             all_first_predictions.append(batch_first_predictions)
 
     all_relations, all_first_predictions = torch.cat(all_relations).bool(), torch.cat(all_first_predictions)
+    all_first_predictions = model.loss_module.pred_RE_results(all_first_predictions)
 
     # FOR CDR
     preds = all_first_predictions.cpu().numpy()
